@@ -128,5 +128,11 @@ full_data <- full_data %>%
   mutate(duration_label=glue("{whole_min} minutes and {remainder_seconds} seconds")) %>% 
   select(-min_char,-whole_min,-remainder_seconds)
 
+#Create a date column
+full_data <- full_data %>% 
+  mutate(date=str_remove_all(added_at,"T.*"),
+         date=ymd(date),
+         year_month=as.yearmon(date))
+
 
 saveRDS(full_data,here("data/full_data.rds"))
