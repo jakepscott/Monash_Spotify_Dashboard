@@ -6,6 +6,9 @@ library(here) # for here
 library(janitor) #For clean_names
 library(furrr) # for parallel processing
 library(future) # for parallel processing
+library(lubridate) # for dates
+library(glue) #for bringing strings together
+
 
 # Get Access Token --------------------------------------------------------
 access_token <- get_spotify_access_token()
@@ -102,5 +105,27 @@ saveRDS(full_features,here("data/full_features.rds"))
 # Join Songs and Features -------------------------------------------------
 full_data <- my_songs %>% 
   left_join(full_features, by=c("track_id"="id"))
+
+
+
+# Do some minor cleaning --------------------------------------------------
+#Clean up duration ms
+full_data <- full_data %>% 
+  #Get a minutes col
+  mutate(minutes=duration_ms/1000/60,
+         #get a minutes col that is a character so I can separate at the decimal
+         min_char=as.character(minutes)) %>% 
+  #Separate at decimal so I can have a whole minutes column and a decimal seconds column
+  separate(min_char,into = c("whole_min", "remainder_seconds"),sep = "\\.", remove=F) %>% 
+  mutate(remainder_seconds=glue(".{remainder_seconds}"), #add the decimal back to decimal seconds col so I can us as.numeric
+        #Convert remainder seconds to numeric
+         remainder_seconds=as.numeric(remainder_seconds),
+        #Convert decimal remainder seconds to whole seconds
+         remainder_seconds=remainder_seconds*60,
+        #round
+         remainder_seconds=round(remainder_seconds,0)) %>% 
+  #create a label that say X minutes and Y seconds
+  mutate(duration_label=glue("{whole_min} minutes and {remainder_seconds} seconds"))
+
 
 saveRDS(full_data,here("data/full_data.rds"))
