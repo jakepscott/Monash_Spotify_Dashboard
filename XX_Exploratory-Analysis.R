@@ -20,7 +20,7 @@ data <- data %>%
  data %>% 
   select(-added_at,-date) %>% 
   group_by(year_month) %>% 
-  summarise(across(where(is.numeric), mean, na.rm=T),
+  summarise(across(where(is.numeric), median, na.rm=T),
             n=n()) %>% 
   pivot_longer(danceability:n, names_to = "feature") %>%
   ggplot(aes(year_month,value,color=feature)) +
@@ -34,9 +34,23 @@ data <- data %>%
 data %>% 
   mutate(month=month(date,label = T)) %>% 
   group_by(month) %>% 
-  summarise(across(where(is.numeric), mean, na.rm=T),
+  summarise(across(where(is.numeric), median, na.rm=T),
             n=n()) %>% 
   pivot_longer(danceability:n, names_to = "feature") %>%
   ggplot(aes(month,value,fill=feature)) +
   geom_col(show.legend = F) +
+  facet_wrap(~feature, scales = "free_y")
+
+
+# Rolling median ----------------------------------------------------------
+data %>% 
+  pivot_longer(danceability:duration_ms, names_to = "feature") %>% 
+  select(date,feature,value) %>% 
+  arrange(date,feature) %>% 
+  group_by(feature) %>% 
+  mutate(rolling_val=rollmedian(value,k = 14,fill = NA,align = "right")) %>% 
+  filter(year(date)>=2020) %>% 
+  ggplot(aes(date,rolling_val,color=feature)) +
+  geom_line(show.legend = F) +
+  geom_vline(xintercept = as.Date("2020-03-01")) +
   facet_wrap(~feature, scales = "free_y")
