@@ -3,6 +3,7 @@ library(stringr)
 library(Rspotify)
 library(tidyverse)
 library(here)
+library(janitor)
 
 
 # Loading Necessary Data and Functions ------------------------------------
@@ -14,12 +15,37 @@ source(here("01_Obtain_Wrapped-Data/functions/04-Analyze_Lyrics_Function.R"))
 source(here("01_Obtain_Wrapped-Data/functions/05-Compare_Playlists_Function.R"))
 
 
+# Listing Playlists -------------------------------------------------------
+playlists_set_1 <- getPlaylists("jakerocksalot",token = keys,offset = 0) %>% as_tibble()
+playlists_set_2 <- getPlaylists("jakerocksalot",token = keys,offset = 10) %>% as_tibble()
+playlists_set_3 <- getPlaylists("jakerocksalot",token = keys,offset = 20) %>% as_tibble()
+playlists_set_4 <- getPlaylists("jakerocksalot",token = keys,offset = 30) %>% as_tibble()
+ 
+#Joining playlists
+full_data_raw <- playlists_set_1 %>% 
+  full_join(playlists_set_2) %>% 
+  full_join(playlists_set_3) %>% 
+  full_join(playlists_set_4) 
+
+
+#Filtering only tracks I own or spotify made of reasonable size
+full_data <- full_data_raw %>% 
+  filter(ownerid=="jakerocksalot" | ownerid=="spotify")
+
 # Getting Tracks ----------------------------------------------------------
 #Get track info for my wrapped playlists
-tracks_full <- Tracks_Function(user = "jakerocksalot",playlists=c("Your Top Songs 2017",
-                                                                  "Your Top Songs 2018",
-                                                                  "Your Top Songs 2019",
-                                                                  "Your Top Songs 2020"))   
+tracks_1 <- Tracks_Function(user = "jakerocksalot",playlists=(full_data %>% slice_head(n = 40) %>% pull(name)))  
+tracks_2 <- Tracks_Function(user = "jakerocksalot",playlists=(full_data %>% slice_tail(n = 35) %>% pull(name)))  
+Tracks_Function(user = "jakerocksalot",playlists="New 1")  
+
+#Clean up this full tracks dataset
+tracks_full <- tracks_full %>% 
+  clean_names()
+
+#Only keeping distinct songs
+tracks_distinct <- tracks_full %>% 
+  distinct(id, .keep_all = T) %>% 
+  select(song,id,artist,artist_id,album,album_id)
 
 # Only keeping songs for which I don't already have data from the top 200 analysis  --------
 #What I am doing here is the following: I currently have a massive dataset of songs, with all their feature
@@ -27,9 +53,10 @@ tracks_full <- Tracks_Function(user = "jakerocksalot",playlists=c("Your Top Song
 #If I do, I put them in "already_have_tracks". There is no sense in me downloading all their data, just a time waste.
 #For those songs not in the massive dataset, I put them in "needed_Tracks" and download their song feature info.
 #Then at the end I bind the needed_tracks and already_have_tracks and bind them together
-Full_Top_200 <- read_rds(here("01_Obtain_Wrapped-Data/data/Popular_Songs_Data.rds")) %>% select(-Playlist)
-needed_tracks <- tracks_full %>% anti_join(Full_Top_200,by="Id")
-already_have_tracks <- tracks_full %>% semi_join(Full_Top_200,by="Id")
+Full_Top_200 <- read_rds(here("01_Obtain_Wrapped-Data/data/Popular_Songs_Data.rds")) %>% 
+  select(-Playlist) %>% clean_names()
+needed_tracks <- tracks_distinct %>% anti_join(Full_Top_200,by="id")
+already_have_tracks <- tracks_full %>% semi_join(Full_Top_200,by="id")
 
 # Getting Features of Wrapped Playlists -----------------------------------
 Features <- Features_Function(track_data = needed_tracks)
@@ -67,11 +94,11 @@ already_have_tracks <- already_have_tracks %>% select(Id,Playlist) %>% left_join
 #In the saved top 200 dataset
 Full_Wrapped_Feat_Lyrics_Data <- Full_Wrapped_Feat_Lyrics_Data %>% bind_rows(already_have_tracks)
 
-#saveRDS(Full_Wrapped_Feat_Lyrics_Data,here("data/Full_Wrapped_Feat_Lyrics_Data.rds"))
-#saveRDS(Full_Wrapped_Feat_Lyrics_Data,here("01_Obtain_Wrapped-Data/data/Full_Wrapped_Feat_Lyrics_Data.rds"))
+saveRDS(Full_Wrapped_Feat_Lyrics_Data,here("data/Full_Wrapped_Feat_Lyrics_Data.rds"))
+saveRDS(Full_Wrapped_Feat_Lyrics_Data,here("01_Obtain_Wrapped-Data/data/Full_Wrapped_Feat_Lyrics_Data.rds"))
 
 
 # Comparing the Wrapped Playlists -----------------------------------------
 Wrapped_Playlist_Data <- Full_Wrapped_Feat_Lyrics_Data %>% Playlist_Comparison_Function(wrapped = T)
-#saveRDS(Wrapped_Playlist_Data,here("01_Obtain_Wrapped-Data/data/Wrapped_Playlist_Data.rds"))
-#saveRDS(Wrapped_Playlist_Data,here("data/Wrapped_Playlist_Data.rds"))
+saveRDS(Wrapped_Playlist_Data,here("01_Obtain_Wrapped-Data/data/Wrapped_Playlist_Data.rds"))
+saveRDS(Wrapped_Playlist_Data,here("data/Wrapped_Playlist_Data.rds"))
