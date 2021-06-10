@@ -125,7 +125,8 @@ full_data <- full_data %>%
         #round
          remainder_seconds=round(remainder_seconds,0)) %>% 
   #create a label that say X minutes and Y seconds
-  mutate(duration_label=glue("{whole_min} minutes and {remainder_seconds} seconds"))
+  mutate(duration_label=glue("{whole_min} minutes and {remainder_seconds} seconds")) %>% 
+  select(-min_char,-whole_min,-remainder_seconds)
 
 
 saveRDS(full_data,here("data/full_data.rds"))
