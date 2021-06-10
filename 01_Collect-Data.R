@@ -103,4 +103,4 @@ saveRDS(full_features,here("data/full_features.rds"))
 full_data <- my_songs %>% 
   left_join(full_features, by=c("track_id"="id"))
 
-
+saveRDS(full_data,here("data/full_data.rds"))
