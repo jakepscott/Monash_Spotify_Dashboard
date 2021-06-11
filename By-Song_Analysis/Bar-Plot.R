@@ -14,11 +14,10 @@ theme_set(theme_minimal(base_family = "Roboto Condensed",
 
 
 # Set params --------------------------------------------------------------
-variable <- "loudness"
+variable <- "valence"
 how_many <- 10
 
-
-# Plot --------------------------------------------------------------------
+# Obain Data --------------------------------------------------------------
 #Get the top "how_many" songs by chosen variable
 top <- data %>% 
   slice_max(order_by = !!as.symbol(variable),
@@ -35,19 +34,16 @@ bottom <- data %>%
 top_and_bottom <- top %>% 
   bind_rows(bottom) 
 
-#If variable=="minutes", use the custom made "duration_label", otherwise use the generic 
-# variable: value format. 
-if (variable=="minutes") {
-  top_and_bottom <- top_and_bottom %>% 
-    mutate(value=!!as.symbol(variable),
-           label=glue("{str_to_title(track_name)}: {duration_label}"))
-} else {
-  top_and_bottom <- top_and_bottom %>% 
-    mutate(value=!!as.symbol(variable),
-           label=glue("{str_to_title(track_name)}: {value}"))
-}
+
+# Set Label ---------------------------------------------------------------
+top_and_bottom <- top_and_bottom %>% 
+  mutate(value=!!as.symbol(variable),
+         label=glue("Track: {str_to_title(track_name)} \n{str_to_title(variable)}: {value} \n Album: {track_album_name} \n Artist: {artist_name}"))
+
   
 
+
+# Plot --------------------------------------------------------------------
 (top_and_bottom_plot <- top_and_bottom %>% 
   ggplot(aes(fct_reorder(track_name,!!as.symbol(variable)),!!as.symbol(variable))) +
   geom_col_interactive(aes(fill=top_or_bot,
@@ -64,5 +60,9 @@ if (variable=="minutes") {
         plot.title = element_markdown()))
 
 
-girafe(ggobj = top_and_bottom_plot)
+girafe(ggobj = top_and_bottom_plot,
+       options = list(
+         opts_hover(css="fill:green;"),
+         opts_hover_inv(css = "opacity:0.25;")
+       ))
 

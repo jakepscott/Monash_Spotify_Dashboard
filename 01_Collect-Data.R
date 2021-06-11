@@ -134,5 +134,4 @@ full_data <- full_data %>%
          date=ymd(date),
          year_month=as.yearmon(date))
 
-
 saveRDS(full_data,here("data/full_data.rds"))
