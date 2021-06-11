@@ -1,7 +1,5 @@
 
 # Loading Libs ------------------------------------------------------------
-
-
 library(shiny)
 library(shinydashboard)
 library(shinyalert)
@@ -107,12 +105,12 @@ ui <- dashboardPage(skin = "green",
                                                              choices = c("Danceability"="danceability", "Duration"="minutes",
                                                                          "Energy"="energy", "Loudness"="loudness", "Tempo"="tempo", 
                                                                          "Track Popularity"="track_popularity", "Valence"="valence"),
-                                                             selected="Danceability"),
+                                                             selected="danceability"),
                                               selectizeInput("scatterplot_yaxis_allsongs",label="Y Axis:",
                                                              choices = c("Danceability"="danceability", "Duration"="minutes",
                                                                          "Energy"="energy", "Loudness"="loudness", "Tempo"="tempo", 
                                                                          "Track Popularity"="track_popularity", "Valence"="valence"),
-                                                             selected="Valence")
+                                                             selected="valence")
                                           )),
                                    #Figure
                                    column(width = 8, style='padding-left:0px', 

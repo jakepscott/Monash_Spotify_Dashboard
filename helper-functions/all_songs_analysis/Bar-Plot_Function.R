@@ -63,5 +63,3 @@ song_bar_plot_function <- function(variable, how_many, data){
            opts_hover_inv(css = "opacity:0.25;")
          ))
 }
-
-song_bar_plot_function(variable = "track_popularity",how_many = 10, data = full_data)
