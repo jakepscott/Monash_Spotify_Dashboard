@@ -16,15 +16,18 @@ library(zoo)
 library(ggtext)
 library(glue)
 library(ggiraph)
+library(patchwork)
 windowsFonts(`Roboto Condensed`=windowsFont("Roboto Condensed"))
 theme_set(theme_minimal(base_family = "Roboto Condensed",
                         base_size=12))
 
 # Loading Necessary Data and Functions ------------------------------------
+#Spotify API key
 source(here("key.R"))
+#Load my data
 data <- read_rds(here("data/full_data.rds"))
-source(here("helper-functions/all_songs_analysis/Bar-Plot_Function.R"))
-source(here("helper-functions/all_songs_analysis/Scatter-Plot_Function.R"))
+#Load all songs plot function
+source(here("helper-functions/all_songs_analysis/Combined_Bar_Scatter_Plot_Function.R"))
 #Mandatory Fields
 fieldsMandatory <- c("username", "playlists","features")
 
@@ -82,42 +85,28 @@ ui <- dashboardPage(skin = "green",
                                    #Input Selection
                                    column(width = 4, style='padding-left:0px',
                                           box(width = 12,
-                                              selectizeInput("barplot_variable_allsongs",label="Which feature would you see highest and lowest tracks for?",
-                                                             choices = c("Danceability"="danceability", "Duration"="minutes",
-                                                                         "Energy"="energy", "Loudness"="loudness", "Tempo"="tempo", 
-                                                                         "Track Popularity"="track_popularity", "Valence"="valence")),
-                                              sliderInput(inputId = "num_tracks_barplot_allsongs", label = "Show top and bottom X values:",
-                                                          max = 10, min=3, value = 10, 
-                                                          step = 1, round = T) 
-                                          )),
-                                   #Figure
-                                   column(width = 8, style='padding-left:0px', 
-                                          box(width=12,
-                                              withSpinner(girafeOutput("All_Songs_Barplot"),type = 6,color = "#1DB954")
-                                          ))
-                                 ),
-                                 
-                                 fluidRow(
-                                   #Input Selection
-                                   column(width = 4, style='padding-left:0px',
-                                          box(width = 12,
-                                              selectizeInput("scatterplot_xaxis_allsongs",label="X Axis:",
+                                              selectizeInput("main_variable_allsongs",label="Main Feature (for bar plot and y-axis of scatter)",
                                                              choices = c("Danceability"="danceability", "Duration"="minutes",
                                                                          "Energy"="energy", "Loudness"="loudness", "Tempo"="tempo", 
                                                                          "Track Popularity"="track_popularity", "Valence"="valence"),
                                                              selected="danceability"),
-                                              selectizeInput("scatterplot_yaxis_allsongs",label="Y Axis:",
+                                              selectizeInput("comp_variable_allsongs",label="Comparison Feature (for x-axis of scatter)",
                                                              choices = c("Danceability"="danceability", "Duration"="minutes",
                                                                          "Energy"="energy", "Loudness"="loudness", "Tempo"="tempo", 
                                                                          "Track Popularity"="track_popularity", "Valence"="valence"),
-                                                             selected="valence")
+                                                             selected="valence"),
+                                              sliderInput(inputId = "num_tracks_barplot_allsongs", label = "How many tracks to show in bar plot (top and bottom):",
+                                                          max = 10, min=3, value = 10, 
+                                                          step = 1, round = T),
+                                              actionButton("all_songs_plot_go","View")
+                                              
                                           )),
                                    #Figure
                                    column(width = 8, style='padding-left:0px', 
                                           box(width=12,
-                                              withSpinner(girafeOutput("All_Songs_Scatterplot"),type = 6,color = "#1DB954")
+                                              withSpinner(girafeOutput("All_Songs_Plot"),type = 6,color = "#1DB954")
                                           ))
-                                 )
+                                 ),
                         ),
                         
                         # Compare Playlists Tab ---------------------------------------------------
@@ -138,10 +127,9 @@ server <- function(input, output, session) {
   shinyjs::disable("playlists")
   
   #Disable exploration UI until data is collected
-  shinyjs::disable("barplot_variable_allsongs")
+  shinyjs::disable("main_variable_allsongs")
+  shinyjs::disable("comp_variable_allsongs")
   shinyjs::disable("num_tracks_barplot_allsongs")
-  shinyjs::disable("scatterplot_xaxis_allsongs")
-  shinyjs::disable("scatterplot_yaxis_allsongs")
   
   #generating playlist selection function -------------------------------------------------------
   observeEvent(input$usernameclick, {
@@ -161,35 +149,37 @@ server <- function(input, output, session) {
       shinyalert("Success!", "Username found", type = "success")
       #Enabling playlist and feature selection if and only if a username is found
       #Now that data is loaded, enable the exploration UI
-      shinyjs::enable("barplot_variable_allsongs")
+      shinyjs::enable("main_variable_allsongs")
+      shinyjs::enable("comp_variable_allsongs")
       shinyjs::enable("num_tracks_barplot_allsongs")
-      shinyjs::enable("scatterplot_xaxis_allsongs")
-      shinyjs::enable("scatterplot_yaxis_allsongs")
       
       #Saving the data into a reactive object housed in obj
       obj$full_data <- data
     }
   })
   
+  
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # All Songs Bar Plot ---------------------------------------------------------
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  output$All_Songs_Scatterplot <- renderGirafe({
-    if(!is.null(obj$full_data)==T){
-      req(input$scatterplot_xaxis_allsongs)
-      song_scatter_plot_function(input$scatterplot_xaxis_allsongs, input$scatterplot_yaxis_allsongs, obj$full_data)
-    }
-  })
   
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # All Songs Scatter Plot ---------------------------------------------------------
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  output$All_Songs_Barplot <- renderGirafe({
+  All_songs_plot_reactive <- reactiveValues(plot=NULL)
+  
+  observeEvent(input$all_songs_plot_go, {
     if(!is.null(obj$full_data)==T){
-      req(input$barplot_variable_allsongs)
-      song_bar_plot_function(input$barplot_variable_allsongs, input$num_tracks_barplot_allsongs, obj$full_data)
+      req(input$main_variable_allsongs)
+      All_songs_plot_reactive$plot <- all_songs_function_plot(main_variable = input$main_variable_allsongs, 
+                              comparison_variable = input$comp_variable_allsongs,
+                              how_many =input$num_tracks_barplot_allsongs, 
+                              data = obj$full_data)
     }
+  })  
+  
+  
+  output$All_Songs_Plot <- renderGirafe({
+    All_songs_plot_reactive$plot
   })
+
 }
 
 shinyApp(ui, server)
