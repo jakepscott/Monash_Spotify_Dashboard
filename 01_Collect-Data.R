@@ -134,4 +134,11 @@ full_data <- full_data %>%
          date=ymd(date),
          year_month=as.yearmon(date))
 
+#Fix the album release date column
+full_data <- full_data %>% 
+  mutate(track_album_release_date=ifelse(track_album_release_date_precision=="year", 
+                                         glue("{track_album_release_date}-01-01"),
+                                         track_album_release_date)) %>% 
+  mutate(track_album_release_date=as.Date(track_album_release_date))
+
 saveRDS(full_data,here("data/full_data.rds"))
