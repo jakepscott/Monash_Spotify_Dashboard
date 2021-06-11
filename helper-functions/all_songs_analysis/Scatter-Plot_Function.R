@@ -1,19 +1,11 @@
-
 song_scatter_plot_function <- function(x_axis, y_axis, data){
-  if (x_axis=="minutes") {
-    x_axis <- "duration_label"
-  }
-  
-  if (y_axis=="minutes") {
-    y_axis <- "duration_label"
-  }
-  
   # Set labels --------------------------------------------------------------
   #If variable=="minutes", use the custom made "duration_label", otherwise use a generic label
   data_scatter <- data %>% 
-    mutate(x_value=!!as.symbol(x_axis),
-           y_value=!!as.symbol(y_axis),
-           label=glue("Track: {str_to_title(track_name)} \n{str_to_title(y_axis)}: {y_value} \n{str_to_title(x_axis)}:{x_value} \n Album: {track_album_name} \n Artist: {artist_name}"))
+    rowwise() %>% 
+    mutate(x_value=ifelse(x_axis=="minutes", duration_label, !!as.symbol(x_axis)),
+           y_value=ifelse(y_axis=="minutes", duration_label, !!as.symbol(y_axis)),
+           label=glue("Track: {str_to_title(track_name)} \n{str_to_title(y_axis)}: {y_value} \n{str_to_title(x_axis)}: {x_value} \n Album: {track_album_name} \n Artist: {artist_name}"))
   
   # PLot --------------------------------------------------------------------
   plot <- data_scatter %>% 
@@ -27,8 +19,8 @@ song_scatter_plot_function <- function(x_axis, y_axis, data){
      geom_smooth(se=F,
                  color="#1DB954") +
      labs(title = glue("*{str_to_title(y_axis)}* versus *{str_to_title(x_axis)}*"),
-          x=str_to_title(x_axis),
-          y=str_to_title(y_axis)) + 
+          x=str_to_title(str_replace_all(x_axis,"_"," ")),
+          y=str_to_title(str_replace_all(y_axis,"_"," "))) + 
      theme(plot.title.position = "plot",
            plot.title = element_markdown(size=rel(2)))
   
@@ -40,3 +32,4 @@ song_scatter_plot_function <- function(x_axis, y_axis, data){
 }
 
 
+song_scatter_plot_function(x_axis = "minutes",y="valence",data=full_data)
