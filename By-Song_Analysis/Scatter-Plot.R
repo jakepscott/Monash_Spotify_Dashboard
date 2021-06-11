@@ -47,7 +47,7 @@ data_scatter <- data %>%
        x=str_to_title(x_axis),
        y=str_to_title(y_axis)) + 
   theme(plot.title.position = "plot",
-        plot.title = element_markdown()))
+        plot.title = element_markdown(size=rel(2))))
 
 girafe(ggobj = plot,
         options = list(
