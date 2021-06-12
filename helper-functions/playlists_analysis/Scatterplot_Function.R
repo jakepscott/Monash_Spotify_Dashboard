@@ -12,7 +12,7 @@ scatterplot_function <- function(main_variable, comparison_variable, data){
                                main_variable=="Date_Song_Saved" ~ Song_Saved_Label,
                                main_variable=="Track_Release_Date" ~ Track_Release_Label,
                                TRUE ~ as.character(!!as.symbol(main_variable))),
-             label=glue("Playlist: {str_to_title(playlist_name)} \n{str_to_title(str_replace_all(main_variable, '_', ' '))}: {y_label} \n{str_to_title(str_replace_all(comparison_variable, '_', ' '))}: {x_label}"))
+             label=glue("Playlist: {str_to_title(playlist_name)} \nMedian {str_to_title(str_replace_all(main_variable, '_', ' '))}: {y_label} \nMedian {str_to_title(str_replace_all(comparison_variable, '_', ' '))}: {x_label}"))
     
     
     # PLot --------------------------------------------------------------------
@@ -30,12 +30,14 @@ scatterplot_function <- function(main_variable, comparison_variable, data){
                   color="#1DB954") +
       labs(title = glue("Median *{str_to_title(str_replace_all(main_variable,'_', ' '))}* Versus Median *{str_to_title(str_replace_all(comparison_variable, '_', ' '))}*"),
            subtitle = "By playlist",
-           x=str_to_title(str_replace_all(comparison_variable,"_", " ")),
-           y=str_to_title(str_replace_all(main_variable,"_", " "))) + 
+           x=glue("Median {str_to_title(str_replace_all(comparison_variable,'_', ' '))}"),
+           y=glue("Median {str_to_title(str_replace_all(main_variable,'_', ' '))}")) + 
       theme(plot.title.position = "plot",
             plot.title = element_markdown(size=rel(1.25)),
             plot.subtitle = element_text(color = "grey30"))
 
+
+# If the data is all the tracks: ------------------------------------------
   } else if ("track_name" %in% names(data)) {
     
     # Set labels --------------------------------------------------------------
