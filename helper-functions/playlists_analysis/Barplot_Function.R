@@ -86,13 +86,6 @@ barplot_function <- function(main_variable, how_many, data){
             plot.title = element_markdown(size=rel(1.5)),
             axis.text.y = element_text(size=rel(.6)))
   }
-  
-  
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # Bar Plot ----------------------------------------------------------------
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  
 }
   
 
-barplot_function(main_variable = "minutes", "Track_Release_Date",how_many = 5, data = full_data)
