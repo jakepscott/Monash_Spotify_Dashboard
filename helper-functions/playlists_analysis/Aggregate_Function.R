@@ -3,9 +3,10 @@
 
 aggregate_data <- function(main_variable, comparison_variable, data){
   agg <- data %>% 
-    select(playlist_name, playlist_id, main_variable, comparison_variable) %>% 
+    select(playlist_name, !!as.symbol(main_variable), !!as.symbol(comparison_variable), 
+           Date_Song_Saved, Track_Release_Date, minutes) %>% 
     group_by(playlist_name) %>% 
-    summarise(across(.cols = c(main_variable, comparison_variable), median, na.rm=T))
+    summarise(across(.cols = everything(), median, na.rm=T))
   
   #Join playlist ids back in
   agg <- agg %>% 
@@ -13,7 +14,6 @@ aggregate_data <- function(main_variable, comparison_variable, data){
   
   
   # If one of the vars is duration, make a duration_label column --------
-  if (main_variable =="minutes" | comparison_variable == "minutes") {
     ##
     #Create duration label
     ##
@@ -32,20 +32,14 @@ aggregate_data <- function(main_variable, comparison_variable, data){
       #create a label that say X minutes and Y seconds
       mutate(duration_label=glue("{whole_min} minutes and {remainder_seconds} seconds")) %>% 
       select(-min_char,-whole_min,-remainder_seconds)
-  }
   
   
-  # If one of the vars is Date Song Saved, add label col -----------------------------------
-  if (main_variable =="Date_Song_Saved" | comparison_variable == "Date_Song_Saved"){
+  # If one of the vars is Date Song Saved or track release date, add label col -----------------------------------
     agg <- agg %>% 
-      mutate(Song_Saved_Label = as.character(Date_Song_Saved))
-  }
-  # If one of the vars is Date Song Saved, add label col -----------------------------------
-  if (main_variable =="Track_Release_Date" | comparison_variable == "Track_Release_Date"){
-    agg <- agg %>% 
+      mutate(Song_Saved_Label = as.character(Date_Song_Saved)) %>% 
       mutate(Track_Release_Label = as.character(Track_Release_Date))
-  }
-  return(agg)
+
+    return(agg)
 }
 
 
