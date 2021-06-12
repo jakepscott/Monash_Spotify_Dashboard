@@ -91,5 +91,5 @@ all_songs_function_plot <- function(main_variable, comparison_variable, how_many
            opts_hover_inv(css = "opacity:0.25;")))
 }
 
-all_songs_function_plot(main_variable = "valence",comparison_variable = "energy", how_many = 10,
-                   data=full_data)
+# all_songs_function_plot(main_variable = "valence",comparison_variable = "energy", how_many = 10,
+#                    data=full_data)
