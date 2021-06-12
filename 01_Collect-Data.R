@@ -230,7 +230,7 @@ C_to_H <- get_playlist_tracks("29DhHXBzEsqRHa3KgWFqhV",
 playlist_tracks <- playlist_tracks %>% 
   bind_rows(C_to_H) %>% 
   clean_names() %>% 
-  rename("playlist"=name)
+  rename("playlist_name"=name)
 
 
 #Save playlist-track pairs
@@ -247,7 +247,7 @@ features <- features %>%
 
 playlist_tracks_features <- playlist_tracks %>% 
   left_join(features) %>% 
-  relocate(c(playlist,playlist_id), .before = everything())
+  relocate(c(playlist_name,playlist_id), .before = everything())
 
 #Save playlist-track pairs with features
 saveRDS(playlist_tracks_features,here("data/playlist_tracks.rds"))
