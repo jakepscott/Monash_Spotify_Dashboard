@@ -15,6 +15,9 @@ access_token <- get_spotify_access_token()
 #Set my id
 my_id <- 'jakerocksalot'
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Liked Songs -------------------------------------------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Get total number of songs -----------------------------------------------
 #meta <- get_my_saved_tracks(limit = 1, offset = 0, include_meta_info = T)
@@ -36,7 +39,7 @@ get_chunk <- function(offset){
 
 my_songs_raw <- map_df(sequence,get_chunk)
 
-my_songs_raw <- my_songs %>% 
+my_songs_raw <- my_songs_raw %>% 
   as_tibble()
 
 #Save my liked songs
@@ -142,3 +145,95 @@ full_data <- full_data %>%
   mutate(track_album_release_date=as.Date(track_album_release_date))
 
 saveRDS(full_data,here("data/full_data.rds"))
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Playlists -------------------------------------------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Get total number of playlists -------------------------------------------
+#playlist_metadata <- get_user_playlists(user_id = "jakerocksalot", limit=1, include_meta_info = T) 
+#total_playlists <- playlist_metadata$total
+total_playlists <- 90 #There are 90 playlists
+
+# Let's get all of my playlists -----------------------------------------
+#functional approach https://frie.codes/posts/using-r-to-remove-audiobooks-from-spotify/
+sequence <- seq(0,total_playlists + 50, 50)
+
+get_chunk <- function(offset){
+  cat(glue::glue("{offset} \n"))
+  tracks <- get_user_playlists(user_id = "jakerocksalot",
+                               limit=50, 
+                               offset = offset, 
+                               include_meta_info = F)
+  return(tracks)
+}
+
+my_playlists_raw <- map_df(sequence,get_chunk)
+
+my_playlists_raw <- my_playlists_raw %>% 
+  as_tibble()
+
+#Save my playlists
+saveRDS(my_playlists_raw,here("data/my_playlists_raw"))
+
+
+# Let's find the tracks for each playlist ---------------------------------
+my_playlists_raw <- my_playlists_raw %>% 
+  filter(owner.display_name == "spotify" |
+           owner.display_name == "jakerocksalot") 
+
+
+playlist_ids <- my_playlists_raw$id
+
+playlist_tracks <- get_playlist_tracks(my_playlists_raw$id[1], fields = c("track.id", "track.name")) %>% 
+  head(0) %>% 
+  mutate(playlist_id=character(length = 0L))
+  
+for(i in playlist_ids){
+  tryCatch({
+    Sys.sleep(.01)
+    print(i)
+    to_bind <- get_playlist_tracks(i, fields = c("track.id", "track.name")) %>% 
+      mutate(playlist_id=i)
+    playlist_tracks<-bind_rows(playlist_tracks,to_bind)},
+    error=function(e){})
+}
+
+playlist_tracks <- playlist_tracks %>% as_tibble()
+
+playlist_tracks <- playlist_tracks %>% 
+  left_join(my_playlists_raw %>% select(id, name), by = c("playlist_id"="id"))
+
+#This only got 100 of the 134 songs in "Biking in Purgatory to Cathart", because get_playlist_tracks()  has
+# a limit of 100 tracks. I can fix this by just offsetting by 100 and getting those final 34
+playlist_tracks %>% filter(name=="Biking in Purgatory to Cathart")
+
+C_to_H <- get_playlist_tracks("29DhHXBzEsqRHa3KgWFqhV", 
+                              fields = c("track.id", "track.name"),
+                              offset = 100) %>% 
+  mutate(playlist_id="29DhHXBzEsqRHa3KgWFqhV",
+         name="Biking in Purgatory to Cathart")
+
+#Add these final 34 songs to playlist_tracks
+playlist_tracks <- playlist_tracks %>% 
+  bind_rows(C_to_H) %>% 
+  clean_names() %>% 
+  rename("playlist"=name)
+
+
+#Save playlist-track pairs
+saveRDS(playlist_tracks,here("data/playlist_tracks_raw.rds"))
+
+
+# Add features to playlist-track pairs data -------------------------------
+features <- read_rds(here("data/full_data.rds"))
+features <- features %>% select(track_id,track_popularity,added_at, danceability, energy,
+                    valence, tempo, duration_ms, minutes, duration_label,
+                    loudness)
+
+playlist_tracks_features <- playlist_tracks %>% 
+  left_join(features) %>% 
+  relocate(c(playlist,playlist_id), .before = everything())
+
+#Save playlist-track pairs with features
+saveRDS(playlist_tracks_features,here("data/playlist_tracks.rds"))
