@@ -32,7 +32,7 @@ all_songs_function_plot <- function(main_variable, comparison_variable, how_many
   # Set Label ---------------------------------------------------------------
   top_and_bottom <- top_and_bottom %>% 
     mutate(value=!!as.symbol(main_variable),
-           label=glue("Track: {str_to_title(track_name)} \n{str_to_title(main_variable)}: {value} \n Album: {track_album_name} \n Artist: {artist_name}"))
+           label=glue("Track: {str_to_title(track_name)} \n{str_to_title(str_replace_all(main_variable, '_', ' '))}: {value} \n Album: {track_album_name} \n Artist: {artist_name}"))
   
   # Plot --------------------------------------------------------------------
   bar_plot <- top_and_bottom %>% 
@@ -45,9 +45,9 @@ all_songs_function_plot <- function(main_variable, comparison_variable, how_many
      coord_flip() +
      labs(x=NULL,
           y=NULL,
-          title = glue("<span style = 'color: #1DB954;'>**Top**</span> versus <span style = 'color: grey;'>**bottom**</span> {how_many} songs by ***{(main_variable)}***")) +
+          title = glue("<span style = 'color: #1DB954;'>**Top**</span> versus <span style = 'color: grey;'>**bottom**</span> {how_many} songs by *{str_replace_all(main_variable, '_', ' ')}*")) +
      theme(plot.title.position = "plot",
-           plot.title = element_markdown(size=rel(2)),
+           plot.title = element_markdown(size=rel(1.5)),
            axis.text.y = element_text(size=rel(.6)))
   
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -60,7 +60,7 @@ all_songs_function_plot <- function(main_variable, comparison_variable, how_many
     rowwise() %>% 
     mutate(x_value=ifelse(comparison_variable=="minutes", duration_label, !!as.symbol(comparison_variable)),
            y_value=ifelse(main_variable=="minutes", duration_label, !!as.symbol(main_variable)),
-           label=glue("Track: {str_to_title(track_name)} \n{str_to_title(main_variable)}: {y_value} \n{str_to_title(comparison_variable)}: {x_value} \n Album: {track_album_name} \n Artist: {artist_name}"))
+           label=glue("Track: {str_to_title(track_name)} \n{str_to_title(str_replace_all(main_variable, '_', ' '))}: {y_value} \n{str_to_title(comparison_variable)}: {x_value} \n Album: {track_album_name} \n Artist: {artist_name}"))
   
   
   # PLot --------------------------------------------------------------------
@@ -91,5 +91,5 @@ all_songs_function_plot <- function(main_variable, comparison_variable, how_many
            opts_hover_inv(css = "opacity:0.25;")))
 }
 
-# all_songs_function_plot(main_variable = "valence",comparison_variable = "energy", how_many = 10,
-#                    data=full_data)
+all_songs_function_plot(main_variable = "track_popularity",comparison_variable = "energy", how_many = 10,
+                    data=full_data)

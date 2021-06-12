@@ -163,23 +163,25 @@ server <- function(input, output, session) {
   # All Songs Bar Plot ---------------------------------------------------------
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   
-  All_songs_plot_reactive <- reactiveValues(plot=NULL)
-  
+  all_songs_plot_inputs<- reactiveValues(main_variable=NULL,
+                                         comparison_variable=NULL,
+                                         num_tracks=NULL,
+                                         data=NULL)
   observeEvent(input$all_songs_plot_go, {
-    if(!is.null(obj$full_data)==T){
-      req(input$main_variable_allsongs)
-      All_songs_plot_reactive$plot <- all_songs_function_plot(main_variable = input$main_variable_allsongs, 
-                              comparison_variable = input$comp_variable_allsongs,
-                              how_many =input$num_tracks_barplot_allsongs, 
-                              data = obj$full_data)
-    }
-  })  
-  
+    all_songs_plot_inputs$main_variable <- input$main_variable_allsongs
+    all_songs_plot_inputs$comparison_variable <- input$comp_variable_allsongs
+    all_songs_plot_inputs$num_tracks <- input$num_tracks_barplot_allsongs
+    all_songs_plot_inputs$data <- obj$full_data
+  })
   
   output$All_Songs_Plot <- renderGirafe({
-    All_songs_plot_reactive$plot
-  })
-
+    req(!is.null(all_songs_plot_inputs$data))
+      all_songs_function_plot(main_variable = all_songs_plot_inputs$main_variable, 
+                              comparison_variable = all_songs_plot_inputs$comparison_variable,
+                              how_many = all_songs_plot_inputs$num_tracks, 
+                              data = all_songs_plot_inputs$data)
+    #}  
+    })
 }
 
 shinyApp(ui, server)
