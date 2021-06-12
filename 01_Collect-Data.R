@@ -142,7 +142,19 @@ full_data <- full_data %>%
   mutate(track_album_release_date=ifelse(track_album_release_date_precision=="year", 
                                          glue("{track_album_release_date}-01-01"),
                                          track_album_release_date)) %>% 
-  mutate(track_album_release_date=as.Date(track_album_release_date))
+  mutate(Track_Release_Date=as.Date(track_album_release_date)) %>% 
+  select(-track_album_release_date)
+
+
+#Make "added_at" a date column
+full_data <- full_data %>% 
+  mutate(Date_Song_Saved=as.Date(added_at)) %>% 
+  select(-added_at)
+
+#Make labels for the track release date and added_at columns
+full_data <- full_data %>% 
+  mutate(Song_Saved_Label = as.character(Date_Song_Saved), 
+         Track_Release_Label = as.character(Track_Release_Date))
 
 saveRDS(full_data,here("data/full_data.rds"))
 
@@ -227,9 +239,11 @@ saveRDS(playlist_tracks,here("data/playlist_tracks_raw.rds"))
 
 # Add features to playlist-track pairs data -------------------------------
 features <- read_rds(here("data/full_data.rds"))
-features <- features %>% select(track_id,track_popularity,added_at, danceability, energy,
-                    valence, tempo, duration_ms, minutes, duration_label,
-                    loudness)
+features <- features %>% 
+  select(track_id,track_popularity, 
+         danceability, energy, valence, tempo,  
+         minutes, loudness, Date_Song_Saved, Track_Release_Date,
+         duration_label, Song_Saved_Label, Track_Release_Label) 
 
 playlist_tracks_features <- playlist_tracks %>% 
   left_join(features) %>% 

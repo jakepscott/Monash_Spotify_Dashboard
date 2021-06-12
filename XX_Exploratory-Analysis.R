@@ -54,3 +54,17 @@ data %>%
   geom_line(show.legend = F) +
   geom_vline(xintercept = as.Date("2020-03-01")) +
   facet_wrap(~feature, scales = "free_y")
+
+
+# Playling with Playlists -------------------------------------------------
+playlist_tracks_feats <- read_rds(here("data/playlist_tracks.rds"))
+#playlist_tracks %>% count(track_name,sort=T) %>% count(n, sort=T)
+
+playlists_agg <- playlist_tracks_feats %>% 
+  group_by(playlist) %>% 
+  summarise(across(.cols = c(added_at:loudness), median, na.rm=T))
+
+playlists_agg %>% 
+  select(added_at, playlist) %>% 
+  arrange(added_at) %>% 
+  View()
