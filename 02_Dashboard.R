@@ -110,7 +110,7 @@ ui <- dashboardPage(skin = "green",
                                                                          "Tempo"="tempo", "Track Popularity"="track_popularity", 
                                                                          "Track Release Date"="Track_Release_Date",  "Valence"="valence"),
                                                              selected="valence"),
-                                              sliderInput(inputId = "num_tracks_barplot_allsongs", label = "How many tracks to show in bar plot (top and bottom):",
+                                              sliderInput(inputId = "num_bars_allsongs", label = "How many tracks to show in bar plot (top and bottom):",
                                                           max = 10, min=3, value = 5, 
                                                           step = 1, round = T),
                                               actionButton("all_songs_plot_go","View")
@@ -145,17 +145,17 @@ ui <- dashboardPage(skin = "green",
                                                                          "Tempo"="tempo", "Track Popularity"="track_popularity", 
                                                                          "Track Release Date"="Track_Release_Date",  "Valence"="valence"),
                                                              selected="valence"),
-                                              sliderInput(inputId = "num_tracks_barplot_playlist", label = "How many tracks to show in bar plot (top and bottom):",
+                                              sliderInput(inputId = "num_bars_playlist", label = "How many bars to show in bar plot:",
                                                           max = 10, min=3, value = 5, 
                                                           step = 1, round = T),
                                               actionButton("playlists_plot_go","View")
                                               
                                           )),
-                                   # #Figure
-                                   # column(width = 8, style='padding-left:0px', 
-                                   #        box(width=12,
-                                   #            withSpinner(girafeOutput("All_Songs_Plot"),type = 6,color = "#1DB954")
-                                   #        ))
+                                   #Figure
+                                   column(width = 8, style='padding-left:0px',
+                                          box(width=12,
+                                              withSpinner(girafeOutput("Playlists_Plot"),type = 6,color = "#1DB954")
+                                          ))
                                  ))
                       )
                     )
@@ -210,7 +210,7 @@ server <- function(input, output, session) {
   # function, set to NUL
   all_songs_plot_inputs<- reactiveValues(main_variable=NULL,
                                          comparison_variable=NULL,
-                                         num_tracks=NULL,
+                                         num_bars=NULL,
                                          data=NULL)
   
   #Once the "View" button is clicked, set the value of each of those entries within all_songs_plot_inputs to the 
@@ -218,7 +218,7 @@ server <- function(input, output, session) {
   observeEvent(input$all_songs_plot_go, {
     all_songs_plot_inputs$main_variable <- input$main_variable_allsongs
     all_songs_plot_inputs$comparison_variable <- input$comp_variable_allsongs
-    all_songs_plot_inputs$num_tracks <- input$num_tracks_barplot_allsongs
+    all_songs_plot_inputs$num_bars <- input$num_bars_allsongs
     all_songs_plot_inputs$liked_songs <- data$liked_songs
   })
   
@@ -227,7 +227,7 @@ server <- function(input, output, session) {
     req(!is.null(all_songs_plot_inputs$liked_songs))
     AllSongs_Plot(main_variable = all_songs_plot_inputs$main_variable, 
                   comparison_variable = all_songs_plot_inputs$comparison_variable,
-                  how_many = all_songs_plot_inputs$num_tracks, 
+                  how_many = all_songs_plot_inputs$num_bars, 
                   data = all_songs_plot_inputs$liked_songs)
     #}  
     })
@@ -239,26 +239,26 @@ server <- function(input, output, session) {
   # function, set to NUL
   playlists_plot_inputs<- reactiveValues(main_variable=NULL,
                                          comparison_variable=NULL,
-                                         num_tracks=NULL,
+                                         num_bars=NULL,
                                          data=NULL)
   
   #Once the "View" button is clicked, set the value of each of those entries within playlists_plot_inputs to the 
   # user defined value
-  observeEvent(input$all_songs_plot_go, {
+  observeEvent(input$playlists_plot_go, {
     playlists_plot_inputs$main_variable <- input$main_variable_playlist
     playlists_plot_inputs$comparison_variable <- input$comp_variable_playlist
-    playlists_plot_inputs$num_tracks <- input$num_tracks_barplot_playlist
-    playlists_plot_inputs$liked_songs <- data$playlists
+    playlists_plot_inputs$num_bars <- input$num_bars_playlist
+    playlists_plot_inputs$playlists <- data$playlists
   })
   
   #Plug the inputs from playlists_plot_inputs into the AllSongs_Plot function
-  output$All_Songs_Plot <- renderGirafe({
+  output$Playlists_Plot <- renderGirafe({
     req(!is.null(playlists_plot_inputs$playlists))
-    (main_variable = playlists_plot_inputs$main_variable, 
+    Playlist_Plot(main_variable = playlists_plot_inputs$main_variable, 
                   comparison_variable = playlists_plot_inputs$comparison_variable,
-                  how_many = playlists_plot_inputs$num_tracks, 
-                  data = playlists_plot_inputs$playlists)
-    #}  
+                  how_many = playlists_plot_inputs$num_bars, 
+                  data = playlists_plot_inputs$playlists,
+                  method = "compare_playlists")
   })
   
 }

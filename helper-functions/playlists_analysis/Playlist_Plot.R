@@ -1,21 +1,4 @@
-library(tidyverse)
-library(here)
-library(glue)
-library(lubridate)
-library(ggiraph)
-library(ggtext)
-library(patchwork)
-theme_set(theme_minimal(base_size = 12))
-
-playlist_tracks <- read_rds(here("data/playlist_tracks.rds"))
-
-method <- "compare_playlists"
-main_variable <- "valence"
-comparison_variable <- "Date_Song_Saved"
-how_many <- 5
-data <- playlist_tracks
-
-playlist_plot <- function(method, main_variable, comparison_variable, 
+Playlist_Plot <- function(method, main_variable, comparison_variable, 
                           how_many, data){
   #If the method chosen is to aggregate and compare across playlists
   if (method=="compare_playlists") {
