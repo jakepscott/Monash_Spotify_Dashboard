@@ -1,6 +1,6 @@
 AllSongs_Plot <- function(main_variable, comparison_variable, how_many, data) {
-  source(here("helper-functions/Barplot_Function.R"))
-  source(here("helper-functions/Scatterplot_Function.R"))
+  #source(here("helper-functions/Barplot_Function.R"))
+  #source(here("helper-functions/Scatterplot_Function.R"))
   
   #Create the bar plot
   barplot <- barplot_function(main_variable = main_variable,

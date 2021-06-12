@@ -27,7 +27,11 @@ source(here("key.R"))
 #Load my data
 data <- read_rds(here("data/full_data.rds"))
 #Load all songs plot function
-source(here("helper-functions/all_songs_analysis/Combined_Bar_Scatter_Plot_Function.R"))
+source(here("helper-functions/all_songs_analysis/AllSongs_Plot_Function.R"))
+#Load helpful functions
+source(here("helper-functions/Barplot_Function.R"))
+source(here("helper-functions/Scatterplot_Function.R"))
+
 #Mandatory Fields
 fieldsMandatory <- c("username", "playlists","features")
 
@@ -178,10 +182,10 @@ server <- function(input, output, session) {
   
   output$All_Songs_Plot <- renderGirafe({
     req(!is.null(all_songs_plot_inputs$data))
-      all_songs_function_plot(main_variable = all_songs_plot_inputs$main_variable, 
-                              comparison_variable = all_songs_plot_inputs$comparison_variable,
-                              how_many = all_songs_plot_inputs$num_tracks, 
-                              data = all_songs_plot_inputs$data)
+    AllSongs_Plot(main_variable = all_songs_plot_inputs$main_variable, 
+                  comparison_variable = all_songs_plot_inputs$comparison_variable,
+                  how_many = all_songs_plot_inputs$num_tracks, 
+                  data = all_songs_plot_inputs$data)
     #}  
     })
 }
