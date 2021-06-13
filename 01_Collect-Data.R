@@ -78,16 +78,6 @@ saveRDS(my_songs,here("data/my_songs.rds"))
 
 # Getting Track Features -----------------------------------------------
 library(tictoc)
-get_track_audio_features(my_songs$track_id[1])
-
-tic()
-test <- my_songs %>% 
-  select(track_id) %>% 
-  mutate(test=map(track_id,.f = get_track_audio_features)) 
-toc()
-
-test %>% 
-  unnest(test)
 
 ids <- my_songs$track_id
 
@@ -240,14 +230,15 @@ saveRDS(playlist_tracks,here("data/playlist_tracks_raw.rds"))
 # Add features to playlist-track pairs data -------------------------------
 features <- read_rds(here("data/full_data.rds"))
 features <- features %>% 
-  select(track_id,track_popularity, 
+  select(track_id,track_album_name, artist_name,track_popularity, 
          danceability, energy, valence, tempo,  
          minutes, loudness, Date_Song_Saved, Track_Release_Date,
          duration_label, Song_Saved_Label, Track_Release_Label) 
 
 playlist_tracks_features <- playlist_tracks %>% 
   left_join(features) %>% 
-  relocate(c(playlist_name,playlist_id), .before = everything())
+  relocate(c(playlist_name,playlist_id), .before = everything()) %>% 
+  distinct(playlist_name,track_name, .keep_all = T)
 
 #Save playlist-track pairs with features
 saveRDS(playlist_tracks_features,here("data/playlist_tracks.rds"))
