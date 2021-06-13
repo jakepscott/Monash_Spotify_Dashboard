@@ -160,19 +160,15 @@ ui <- dashboardPage(skin = "green",
                                                                         arrange(playlist_name) %>% 
                                                                         pull(playlist_name)
                                                              )),
-                                              selectizeInput(inputId = "across_playlists_playlists",
-                                                             label="Which playlist do you want to analyze the songs of? (Max is 5)",
-                                                             choices=(playlists %>% 
-                                                                        group_by(playlist_name) %>% 
-                                                                        mutate(tracks=n()) %>% 
-                                                                        ungroup() %>% 
-                                                                        filter(tracks>10) %>% 
-                                                                        distinct(playlist_name) %>%
-                                                                        arrange(playlist_name) %>% 
-                                                                        pull(playlist_name)),
-                                                             multiple=T,
-                                                             options = list(maxOptions = 5)
-                                                             ),
+                                              selectizeInput(inputId = "across_playlists_playlists", label= "Which playlist do you want to analyze the songs of? (Max is 5)", 
+                                                             (playlists %>% 
+                                                                group_by(playlist_name) %>% 
+                                                                mutate(tracks=n()) %>% 
+                                                                ungroup() %>% 
+                                                                filter(tracks>10) %>% 
+                                                                distinct(playlist_name) %>%
+                                                                arrange(playlist_name) %>% 
+                                                                pull(playlist_name)), options = list(maxItems = 4)),
                                               sliderInput(inputId = "num_bars_playlist", label = "How many bars to show in bar plot:",
                                                           max = 10, min=3, value = 5, 
                                                           step = 1, round = T),
