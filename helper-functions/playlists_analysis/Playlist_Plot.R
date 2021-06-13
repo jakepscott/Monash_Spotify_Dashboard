@@ -8,6 +8,8 @@ Playlist_Plot <- function(method,
                           how_many, 
                           data){
   #Set up data
+  full_data <- data %>% select(-contains("playlist"))
+  
   single_playlist <- data %>% 
     filter(playlist_name==playlist_of_interest)
   
@@ -78,7 +80,7 @@ Playlist_Plot <- function(method,
     girafe(ggobj = bar_and_scatter,
            options = list(
              opts_selection(type = "multiple",only_shiny = FALSE),
-             opts_hover(css = "fill:#1DB954;"),
+             opts_hover(css = NULL),
              opts_hover_inv(css = "opacity:0.25;")))
   }
 }
