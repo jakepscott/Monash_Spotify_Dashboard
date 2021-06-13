@@ -1,5 +1,5 @@
-scatterplot_function <- function(main_variable, comparison_variable, data){
-  if ("playlist_name" %in% names(data)) {
+scatterplot_function <- function(main_variable, comparison_variable, playlist_or_track, data){
+  if (playlist_or_track=="playlist") {
     # Set labels --------------------------------------------------------------
     #If variable=="minutes", use the custom made "duration_label", otherwise use a generic label
     data_scatter <- data %>% 
@@ -38,7 +38,7 @@ scatterplot_function <- function(main_variable, comparison_variable, data){
 
 
 # If the data is all the tracks: ------------------------------------------
-  } else if ("track_name" %in% names(data)) {
+  } else if (playlist_or_track=="track") {
     
     # Set labels --------------------------------------------------------------
     #If variable=="minutes", use the custom made "duration_label", otherwise use a generic label

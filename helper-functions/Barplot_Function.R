@@ -1,8 +1,8 @@
 #This function takes as input a feature to plot, the number of bars, and a data object. It automatically
 # detects whether this is an aggregated tibble with playlists and their median values, or a disaggregated
 # playlist-track pairing dataset. 
-barplot_function <- function(main_variable, how_many, data){
-  if ("playlist_name" %in% names(data)) {
+barplot_function <- function(main_variable, how_many, playlist_or_track, data){
+  if (playlist_or_track=="playlist") {
     #Obain Top and bottom data  --------------------------------------------------------------
     ##Get the top "how_many" songs by chosen variable
     top <- data %>% 
@@ -42,7 +42,7 @@ barplot_function <- function(main_variable, how_many, data){
       theme(plot.title.position = "plot",
             plot.title = element_markdown(size=rel(1.25)),
             axis.text.y = element_text(size=rel(.6)))
-  } else if ("track_name" %in% names(data)) {
+  } else if (playlist_or_track=="track") {
     #Obain Top and bottom data  --------------------------------------------------------------
     ##Get the top "how_many" songs by chosen variable
     top <- data %>% 

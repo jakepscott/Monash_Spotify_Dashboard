@@ -11,6 +11,7 @@ input_toggle <- function(enable_or_disable){
     shinyjs::disable("comp_variable_playlist")
     shinyjs::disable("num_bars_playlist")
     shinyjs::disable("playlists_plot_go")
+    shinyjs::disable("method_playlist")
   } else if (enable_or_disable=="enable") {
     #All Songs UI
     shinyjs::enable("main_variable_allsongs")
@@ -22,5 +23,7 @@ input_toggle <- function(enable_or_disable){
     shinyjs::enable("comp_variable_playlist")
     shinyjs::enable("num_bars_playlist")
     shinyjs::enable("playlists_plot_go")
+    shinyjs::enable("method_playlist")
+    
   }
 }
