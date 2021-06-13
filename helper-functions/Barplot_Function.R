@@ -4,6 +4,9 @@
 barplot_function <- function(main_variable, how_many, playlist_or_track, data){
   if (playlist_or_track=="playlist") {
     #Obain Top and bottom data  --------------------------------------------------------------
+    if (nrow(data)/2<=how_many) {
+      how_many <- nrow(data)%/%2
+    } 
     ##Get the top "how_many" songs by chosen variable
     top <- data %>% 
       slice_max(order_by = !!as.symbol(main_variable),
@@ -44,6 +47,9 @@ barplot_function <- function(main_variable, how_many, playlist_or_track, data){
             axis.text.y = element_text(size=rel(.6)))
   } else if (playlist_or_track=="track") {
     #Obain Top and bottom data  --------------------------------------------------------------
+    if (nrow(data)/2<=how_many) {
+      how_many <- nrow(data)%/%2
+    } 
     ##Get the top "how_many" songs by chosen variable
     top <- data %>% 
       slice_max(order_by = !!as.symbol(main_variable),

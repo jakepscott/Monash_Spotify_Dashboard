@@ -1,7 +1,7 @@
 Playlist_Plot <- function(method, main_variable, comparison_variable, 
-                          how_many, data){
+                          playlist_of_interest, how_many, data){
   single_playlist <- data %>% 
-    filter(playlist_name=="New 27")
+    filter(playlist_name==playlist_of_interest)
   
   data_agg <- aggregate_data(main_variable = main_variable, 
                              comparison_variable = comparison_variable,

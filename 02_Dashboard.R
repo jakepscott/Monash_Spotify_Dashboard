@@ -148,6 +148,17 @@ ui <- dashboardPage(skin = "green",
                                                              choices = c("Compare Across Playlists"="compare_playlists",
                                                                          "Songs Within Selected Playlist"="songs_within_playlist"),
                                                              selected="compare_playlists"),
+                                              selectizeInput(inputId = "playlist_of_interest",
+                                                             label="Which playlist do you want to analyze the songs of:",
+                                                             choices=(playlists %>% 
+                                                                        group_by(playlist_name) %>% 
+                                                                        mutate(tracks=n()) %>% 
+                                                                        ungroup() %>% 
+                                                                        filter(tracks>10) %>% 
+                                                                        distinct(playlist_name) %>% 
+                                                                        pull(playlist_name) %>% 
+                                                                        sort()
+                                                             )),
                                               sliderInput(inputId = "num_bars_playlist", label = "How many bars to show in bar plot:",
                                                           max = 10, min=3, value = 5, 
                                                           step = 1, round = T),
@@ -193,7 +204,7 @@ server <- function(input, output, session) {
                            label = "Choose which playlists to analyze",
                            choices = "")
     } else {
-      shinyalert("Success!", "Username found", type = "success")
+      #shinyalert("Success!", "Username found", type = "success")
       
       #Enabling exploration UI if and only if a username is found
       #Now that data is loaded, enable the exploration UI
@@ -244,6 +255,7 @@ server <- function(input, output, session) {
                                          comparison_variable=NULL,
                                          num_bars=NULL,
                                          method=NULL,
+                                         playlist_of_interest=NULL,
                                          data=NULL)
   
   #Once the "View" button is clicked, set the value of each of those entries within playlists_plot_inputs to the 
@@ -253,6 +265,7 @@ server <- function(input, output, session) {
     playlists_plot_inputs$comparison_variable <- input$comp_variable_playlist
     playlists_plot_inputs$num_bars <- input$num_bars_playlist
     playlists_plot_inputs$method <- input$method_playlist
+    playlists_plot_inputs$playlist_of_interest <- input$playlist_of_interest
     playlists_plot_inputs$playlists <- data$playlists
   })
   
@@ -261,9 +274,10 @@ server <- function(input, output, session) {
     req(!is.null(playlists_plot_inputs$playlists))
     Playlist_Plot(main_variable = playlists_plot_inputs$main_variable, 
                   comparison_variable = playlists_plot_inputs$comparison_variable,
+                  method = playlists_plot_inputs$method,
+                  playlist_of_interest = playlists_plot_inputs$playlist_of_interest,
                   how_many = playlists_plot_inputs$num_bars, 
-                  data = playlists_plot_inputs$playlists,
-                  method = playlists_plot_inputs$method)
+                  data = playlists_plot_inputs$playlists)
   })
   
 }
