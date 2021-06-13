@@ -153,7 +153,7 @@ scatterplot_function <- function(main_variable, comparison_variable, playlist_or
 }
 
 
-scatterplot_function(main_variable = "energy",
-                     comparison_variable = "valence",
-                     playlist_or_track = "track",
-                     data=playlist_tracks)
+# scatterplot_function(main_variable = "energy",
+#                      comparison_variable = "valence",
+#                      playlist_or_track = "track",
+#                      data=playlist_tracks)
