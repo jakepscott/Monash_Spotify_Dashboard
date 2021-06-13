@@ -1,16 +1,17 @@
-AllSongs_Plot <- function(main_variable, comparison_variable, how_many, playlist_or_track, data) {
+AllSongs_Plot <- function(main_variable, comparison_variable, how_many, 
+                          bar_playlist_or_track="track", scatter_playlist_or_track="track", data) {
   #source(here("helper-functions/Barplot_Function.R"))
   #source(here("helper-functions/Scatterplot_Function.R"))
   
   #Create the bar plot
   barplot <- barplot_function(main_variable = main_variable,
                               how_many = how_many,
-                              playlist_or_track = "track", 
+                              playlist_or_track = bar_playlist_or_track, 
                               data = data)
   #Create the scatter plot
   scatterplot <- scatterplot_function(main_variable = main_variable,
                                       comparison_variable = comparison_variable,
-                                      playlist_or_track = "track",
+                                      playlist_or_track = scatter_playlist_or_track,
                                       data = data)
   #Join bar and scatter plot
   bar_and_scatter <- barplot + scatterplot + plot_layout(ncol = 1)
