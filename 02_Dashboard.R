@@ -156,9 +156,9 @@ ui <- dashboardPage(skin = "green",
                                                                         mutate(tracks=n()) %>% 
                                                                         ungroup() %>% 
                                                                         filter(tracks>10) %>% 
-                                                                        distinct(playlist_name) %>% 
-                                                                        pull(playlist_name) %>% 
-                                                                        sort()
+                                                                        distinct(playlist_name) %>%
+                                                                        arrange(playlist_name) %>% 
+                                                                        pull(playlist_name)
                                                              )),
                                               selectizeInput(inputId = "across_playlists_playlists",
                                                              label="Which playlist do you want to analyze the songs of:",
@@ -167,9 +167,9 @@ ui <- dashboardPage(skin = "green",
                                                                         mutate(tracks=n()) %>% 
                                                                         ungroup() %>% 
                                                                         filter(tracks>10) %>% 
-                                                                        distinct(playlist_name) %>% 
-                                                                        pull(playlist_name) %>% 
-                                                                        sort()),
+                                                                        distinct(playlist_name) %>%
+                                                                        arrange(playlist_name) %>% 
+                                                                        pull(playlist_name)),
                                                              multiple=T
                                                              ),
                                               sliderInput(inputId = "num_bars_playlist", label = "How many bars to show in bar plot:",

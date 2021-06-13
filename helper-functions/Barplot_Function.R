@@ -28,8 +28,8 @@ barplot_function <- function(main_variable, how_many, playlist_or_track, data){
     # Set Label ---------------------------------------------------------------
     top_and_bottom <- top_and_bottom %>% 
       mutate(value=!!as.symbol(main_variable),
-             label = glue("Playlist: {str_to_title(playlist_name)} \n{str_to_title(str_replace_all(main_variable, '_', ' '))}: {value}"))
-    
+             label = case_when(main_variable == "minutes" ~ glue("Playlist: {str_to_title(playlist_name)} \nMedian {str_to_title(str_replace_all(main_variable, '_', ' '))}: {duration_label}"),
+                               TRUE ~ glue("Playlist: {str_to_title(playlist_name)} \nMedian {str_to_title(str_replace_all(main_variable, '_', ' '))}: {value}")))
     # Plot --------------------------------------------------------------------
     top_and_bottom %>% 
       ggplot(aes(fct_reorder(str_wrap(playlist_name,35),!!as.symbol(main_variable)),!!as.symbol(main_variable))) +
@@ -44,7 +44,7 @@ barplot_function <- function(main_variable, how_many, playlist_or_track, data){
            title = glue("<span style = 'color: #1DB954;'>**Top**</span> versus <span style = 'color: grey;'>**bottom**</span> {how_many} playlists by median *{str_replace_all(main_variable, '_', ' ')}*")) +
       theme(plot.title.position = "plot",
             plot.title = element_markdown(size=rel(1.25)),
-            axis.text.y = element_text(size=rel(.6)))
+            axis.text.y = element_text(size=rel(.5)))
   } else if (playlist_or_track=="track") {
     #Obain Top and bottom data  --------------------------------------------------------------
     if (nrow(data)/2<=how_many) {
@@ -90,7 +90,7 @@ barplot_function <- function(main_variable, how_many, playlist_or_track, data){
            title = glue("<span style = 'color: #1DB954;'>**Top**</span> versus <span style = 'color: grey;'>**bottom**</span> {how_many} songs by *{str_replace_all(main_variable, '_', ' ')}*")) +
       theme(plot.title.position = "plot",
             plot.title = element_markdown(size=rel(1.5)),
-            axis.text.y = element_text(size=rel(.6)))
+            axis.text.y = element_text(size=rel(.5)))
   }
 }
   
