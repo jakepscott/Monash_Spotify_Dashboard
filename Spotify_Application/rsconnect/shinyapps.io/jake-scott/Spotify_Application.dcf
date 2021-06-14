@@ -1,0 +1,13 @@
+name: Spotify_Application
+title: Spotify_Application
+username:
+account: jake-scott
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4268412
+bundleId: 4714068
+url: https://jake-scott.shinyapps.io/Spotify_Application/
+when: 1623667136.00652
+lastSyncTime: 1623667136.00652
+asMultiple: FALSE
+asStatic: FALSE

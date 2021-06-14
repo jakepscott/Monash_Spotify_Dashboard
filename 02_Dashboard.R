@@ -31,50 +31,27 @@ source(here("key.R"))
 load(here("data/keys"))
 
 #Load liked songs data
-liked_songs <- read_rds(here("data/full_data.rds"))
+liked_songs <- read_rds(here("data_publish/full_data.rds"))
 
 #Load playlist data
-playlists <- read_rds(here("data/playlist_tracks.rds"))
+playlists <- read_rds(here("data_publish/playlist_tracks.rds"))
 
 #Load model
-# pop_songs_data <- read_rds(here("data/Full_Popular_Songs.rds"))
-# pop_songs_data <- pop_songs_data %>% 
-#   distinct(track_id,.keep_all = T) %>% 
-#   na.omit()
-# 
-# #Taking all but the hold out data
-# full_data <- pop_songs_data %>% 
-#   #Remove identified columns
-#   select(-contains("id"), -contains('name')) %>%
-#   #Make logical outcome into character
-#   mutate(liked=case_when(liked==T~"Liked",
-#                          liked==F~"Not Liked")) %>% 
-#   #make character columns factors
-#   mutate(across(where(is.character), as.factor)) %>% 
-#   mutate(liked=as.factor(liked)) %>% 
-#   select(-type) %>% 
-#   mutate(track_release_date=as.numeric(track_release_date)) %>% 
-#   mutate(key=as.factor(key),
-#          mode=as.factor(mode),
-#          time_signature=as.factor(time_signature)) %>% 
-#   mutate(across(where(is.numeric),as.numeric)) %>% 
-#   select(-genres)
-
-model_for_pred <- read_rds(here("model/model_for_app_prediction.rds"))
+model_for_pred <- read_rds(here("model_publish//model_for_app_prediction.rds"))
 
 
 #Load keys
 load(here("data/keys"))
 
 #Load helper functions
-source(here("helper-functions/all_songs_analysis/AllSongs_Plot_Function.R"))#Load all songs plot function
-source(here("helper-functions/playlists_analysis/Playlist_Plot.R")) #Load the playlists plot function
-source(here("helper-functions/Barplot_Function.R"))#Load barplot function
-source(here("helper-functions/Scatterplot_Function.R")) #Load scatterplot function
-source(here("helper-functions/Aggregate_Function.R")) #Load playlist aggregation function
-source(here("helper-functions/Input_Toggle.R")) # Toggle inputs
-source(here("helper-functions/Get_Artist_Songs.R"))
-source(here("helper-functions/Prediction_Function.R"))
+source(here("helper-functions_publish/all_songs_analysis/AllSongs_Plot_Function.R"))#Load all songs plot function
+source(here("helper-functions_publish/playlists_analysis/Playlist_Plot.R")) #Load the playlists plot function
+source(here("helper-functions_publish/Barplot_Function.R"))#Load barplot function
+source(here("helper-functions_publish/Scatterplot_Function.R")) #Load scatterplot function
+source(here("helper-functions_publish/Aggregate_Function.R")) #Load playlist aggregation function
+source(here("helper-functions_publish/Input_Toggle.R")) # Toggle inputs
+source(here("helper-functions_publish/Get_Artist_Songs.R"))
+source(here("helper-functions_publish/Prediction_Function.R"))
 
 #Mandatory Fields
 fieldsMandatory <- c("username", "playlists","features")
@@ -108,6 +85,8 @@ ui <- dashboardPage(skin = "green",
                         # All Songs Tab ---------------------------------------------------------
                         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                         # Overview tab -------------------------------------------------------------
+                        tabPanel(title = "Welcome!"
+                                 ),
                         tabPanel(title = "Explore Liked Songs",
                                  
                                  # Fixing the header color -------------------------------------------------
@@ -510,12 +489,12 @@ server <- function(input, output, session) {
         geom_point_interactive(aes(tooltip=label)) +
         labs(y=NULL,
              x="Coefficient",
-             title="I am more likely to like a speechy and energetic song, less likely to \nlike a long song from a popular artist",
-             subtitle = "Estimates from logistic classification model, thus one should focus on direction and \nmagnitude. Positive means more likely, negative means less likely") +
+             title="Values on the right positively predict me liking a song, values on the \nleft negatively predict me liking a song",
+             subtitle = "Estimates from logistic classification model. Higher speechiness and energy predict \nI will like a song, higher artist popularity and duration predicts I won't like a song") +
         theme_minimal() +
         theme(plot.title.position = "plot",
               plot.title = element_text(size=rel(1.25)),
-              plot.subtitle = element_text(size=rel(1)),
+              plot.subtitle = element_text(size=rel(1), face="italic", color="grey30"),
               axis.text.y = element_text(size=rel(1)))
     
     girafe(ggobj = plot)
