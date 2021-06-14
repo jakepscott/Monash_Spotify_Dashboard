@@ -19,6 +19,7 @@ library(patchwork)
 library(Rspotify)
 library(broom)
 library(spotifyr)
+library(tidymodels)
 windowsFonts(`Roboto Condensed`=windowsFont("Roboto Condensed"))
 theme_set(theme_minimal(base_family = "Roboto Condensed",
                         base_size=12))
@@ -36,7 +37,31 @@ liked_songs <- read_rds(here("data/full_data.rds"))
 playlists <- read_rds(here("data/playlist_tracks.rds"))
 
 #Load model
-model <- read_rds(here("model/logistic_model_fit_no_genres.rds"))
+# pop_songs_data <- read_rds(here("data/Full_Popular_Songs.rds"))
+# pop_songs_data <- pop_songs_data %>% 
+#   distinct(track_id,.keep_all = T) %>% 
+#   na.omit()
+# 
+# #Taking all but the hold out data
+# full_data <- pop_songs_data %>% 
+#   #Remove identified columns
+#   select(-contains("id"), -contains('name')) %>%
+#   #Make logical outcome into character
+#   mutate(liked=case_when(liked==T~"Liked",
+#                          liked==F~"Not Liked")) %>% 
+#   #make character columns factors
+#   mutate(across(where(is.character), as.factor)) %>% 
+#   mutate(liked=as.factor(liked)) %>% 
+#   select(-type) %>% 
+#   mutate(track_release_date=as.numeric(track_release_date)) %>% 
+#   mutate(key=as.factor(key),
+#          mode=as.factor(mode),
+#          time_signature=as.factor(time_signature)) %>% 
+#   mutate(across(where(is.numeric),as.numeric)) %>% 
+#   select(-genres)
+
+model_for_pred <- read_rds(here("model/model_for_app_prediction.rds"))
+
 
 #Load keys
 load(here("data/keys"))
@@ -289,7 +314,7 @@ server <- function(input, output, session) {
   
   prediction_inputs <- reactiveValues(artist_data=NULL,
                                       track_name_choice=NULL,
-                                      model=model)
+                                      model=model_for_pred)
   prediction_output <- reactiveValues(prediction=NULL,
                                       song=NULL,
                                       artist=NULL)
