@@ -68,7 +68,7 @@ ui <- dashboardPage(skin = "green",
                       setSliderColor("#1DB954", 2),
                       tabsetPanel(
                         # Overview tab -------------------------------------------------------------
-                        tabPanel(title = "Liked Songs",
+                        tabPanel(title = "Explore Liked Songs",
                                  
                                  # Fixing the header color -------------------------------------------------
                                  ##This fixes this the background color of the header to be spotify green. To be honest it is css and idk how it works. 
@@ -124,7 +124,7 @@ ui <- dashboardPage(skin = "green",
                         ),
                         
                         # Compare Playlists Tab ---------------------------------------------------
-                        tabPanel(title = "Analyze Playlists",
+                        tabPanel(title = "Explore Playlists",
                                  # Mainbody format ---------------------------------------------------------
                                  fluidRow(),
                                  fluidRow(

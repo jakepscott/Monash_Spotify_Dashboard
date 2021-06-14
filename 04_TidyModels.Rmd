@@ -1,0 +1,110 @@
+---
+title: "Tidymodels"
+author: "Jake Scott"
+date: "6/13/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+## Load Data
+```{r Load Libs and Data}
+library(tidyverse)
+library(tidymodels)
+library(here)
+pop_songs_data <- read_rds(here("data/Full_Popular_Songs_Missings_Fixed.rds"))
+pop_songs_data <- pop_songs_data %>% 
+  distinct(track_id,.keep_all = T) %>% 
+  na.omit()
+```
+
+## Explore Data
+```{r Skim and Look for Logs}
+library(skimr)
+pop_songs_data %>% 
+  skim()
+#I should log duration, speechiness, acousticness,  instrumentalness, liveness, artist popularity and artist followers            
+pop_songs_data %>% 
+  ggplot(aes(log10(artist_followers))) +
+  geom_density()
+```
+
+```{r Checking Missings}
+#Note that the proportion of "liked" in the missing rows is essentially identical to the 
+# proportion of liked in non-missing rows, so I feel okay dropping them. I should see if there are other chars
+# unique to the ones with missing values
+pop_songs_data %>% 
+  select(track_name, track_id, artist_name, album_name, liked) %>% 
+  filter(!is.na(artist_name) & !is.na(album_name)) %>% 
+  count(liked)
+
+pop_songs_data %>% 
+  select(track_name, track_id, artist_name, album_name, liked) %>% 
+  filter(is.na(artist_name) | is.na(album_name)) %>% 
+  count(liked)
+```
+
+## Set up to model
+```{r}
+set.seed(13)
+#This is a true hold out I will not touch even once until a final prediction moment
+holdout <- pop_songs_data %>% 
+  slice_sample(prop=0.01)
+
+#Taking all but the hold out data
+full_data <- pop_songs_data %>% 
+  filter(track_id %ni% holdout$track_id)
+
+#Getting rid of ID cols, making logical to char and char to factor
+full_data <- full_data %>% 
+  #Remove identified columns
+  select(-contains("id"), -contains('name')) %>%
+  #Make logical outcome into character
+  mutate(liked=case_when(liked==T~"Liked",
+                         liked==F~"Not Liked")) %>% 
+  #make character columns factors
+  mutate(across(where(is.character), as.factor)) 
+
+```
+
+
+## Model
+### Set up data
+```{r}
+library(tidymodels)
+set.seed(13)
+
+#Splitting the data
+data_split <- initial_split(full_data, strata = liked)
+data_train <- training(data_split)
+data_test <- testing(data_split)
+
+#Create cross validation folds
+set.seed(123)
+data_folds <- vfold_cv(data_train) #Each of these is a cross validation fold. With a training and hold out for each fold.
+#We use the second value in a given split to evaluate our model. We use it to compare and tune data. We save the test data for the very end. The resample things we use every time thru our modeling process to make choices
+```
+
+
+### Feature engineering
+```{r Feature Engineering}
+library(textrecipes)
+#This is data preprocessing
+data_recipe <- recipe(liked ~ ., data = data_train) %>% 
+  #Let's add steps. These are steps we take for feature engineering
+  #These three steps takes the comma separated genre column and create a column for 
+  # 
+  step_tokenize(genres, token = "regex", options = list(pattern = ",")) %>% 
+  step_tokenfilter(genres, max_tokens = 2) %>% 
+  step_tf(genres)
+
+```
+
+
+```{r View Recipe}
+data_recipe %>% 
+  prep() %>% 
+  juice() %>% 
+  View()
+```
+
+
