@@ -1,0 +1,149 @@
+---
+title: "Untitled"
+author: "Jake Scott"
+date: "6/13/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+## Load Data
+```{r Load Libs and Data}
+library(tidyverse)
+library(tidymodels)
+library(here)
+doParallel::registerDoParallel()
+pop_songs_data <- read_rds(here("data/Full_Popular_Songs.rds"))
+pop_songs_data <- pop_songs_data %>% 
+  distinct(track_id,.keep_all = T) %>% 
+  na.omit()
+```
+
+
+### Clean data
+```{r}
+set.seed(13)
+
+#Taking all but the hold out data
+full_data <- pop_songs_data %>% 
+  #Remove identified columns
+  select(-contains("id"), -contains('name')) %>%
+  #Make logical outcome into character
+  mutate(liked=case_when(liked==T~"Liked",
+                         liked==F~"Not Liked")) %>% 
+  #make character columns factors
+  mutate(across(where(is.character), as.factor)) %>% 
+  mutate(liked=as.factor(liked)) %>% 
+  select(-type) %>% 
+  mutate(track_release_date=as.numeric(track_release_date)) %>% 
+  mutate(key=as.factor(key),
+         mode=as.factor(mode),
+         time_signature=as.factor(time_signature)) %>% 
+  mutate(across(where(is.numeric),as.numeric)) %>% 
+  select(-genres)
+
+```
+
+
+### Set test and train data
+
+```{r}
+library(tidymodels)
+set.seed(13)
+
+#Splitting the data
+data_split <- initial_split(full_data, strata = liked)
+data_train <- training(data_split)
+data_test <- testing(data_split)
+
+#Create cross validation folds
+set.seed(123)
+data_folds <- vfold_cv(data_train) #Each of these is a cross validation fold. With a training and hold out for each fold.
+#We use the second value in a given split to evaluate our model. We use it to compare and tune data. We save the test data for the very end. The resample things we use every time thru our modeling process to make choices
+```
+
+
+
+### Set up glm model
+```{r}
+library(ranger)
+glm_spec <- logistic_reg() %>% 
+  set_engine("glm")
+```
+
+
+### Set metrics
+```{r}
+mset <- metric_set(sensitivity, specificity)
+m_sensitivty <- metric_set(sensitivity)
+```
+
+
+### Set up recipe, workflow
+```{r Feature Engineering}
+library(textrecipes) #For tokenizing genres
+library(themis) # for upsampling
+#This is data preprocessing
+data_recipe <- recipe(liked ~ ., data = data_train) %>%  
+  #Take the log to stop the skew of certain features
+  step_log(duration_ms, speechiness, acousticness, instrumentalness, 
+           liveness, artist_popularity, artist_followers, 
+           base = 10, offset = 1) %>% 
+  #This will turn the factor vars into dummys
+  step_dummy(all_nominal(), -liked) %>% 
+  #This will make new examples of songs I like using nearest neighbors of the already-existing songs I do like.
+  # It will make it so we have the same number of songs for liked and not liked, adding to the liked using nearest neighbors
+  step_smote(liked)
+
+#Set workflow
+data_wf <- workflow() %>% 
+  add_recipe(data_recipe) %>% 
+  add_model(glm_spec)
+
+#Run the model without tuning
+cv <- data_wf %>%
+  fit_resamples(data_folds,
+                metrics = mset,
+                control = control_resamples(save_pred=T))
+cv %>%
+  collect_metrics()
+```
+
+
+### Evaluate
+```{r}
+data_final <- data_wf %>% 
+  last_fit(data_split)
+
+collect_predictions(data_final)
+collect_predictions(data_final) %>% 
+  conf_mat(liked,.pred_class)
+
+fit_model <- fit(data_wf,full_data)
+```
+
+### Save model
+```{r}
+saveRDS(data_wf, here("model/logistic_workflow_no_genres.rds"))
+saveRDS(data_final,here("model/logistic_model_no_genres.rds"))
+saveRDS(fit_model,here("model/logistic_model_fit_no_genres.rds"))
+```
+
+### Collect metrics
+```{r}
+data_final <- read_rds(here("model/logistic_model_no_genres.rds"))
+
+accuracy <- data_final %>% 
+  collect_metrics() %>% 
+  filter(.metric=="accuracy") %>% 
+  pull(.estimate)
+
+confusion_matix <- collect_predictions(data_final) %>% 
+  conf_mat(liked,.pred_class) 
+
+sensitivity <- 49/24
+specificity <- 1056/(700+1056)
+
+metrics <- tibble(accuracy=accuracy, sensitivity=sensitivity, specificity=specificity)
+saveRDS(metrics,here("model/model_metrics_no_genres.rds"))
+
+```
