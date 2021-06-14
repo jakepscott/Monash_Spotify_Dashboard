@@ -12,6 +12,9 @@ input_toggle <- function(enable_or_disable){
     shinyjs::disable("num_bars_playlist")
     shinyjs::disable("playlists_plot_go")
     shinyjs::disable("method_playlist")
+    #Disable Model Tab
+    shinyjs::disable("artist_for_song_pred")
+    shinyjs::disable("artist_for_song_pred_go")
   } else if (enable_or_disable=="enable") {
     #All Songs UI
     shinyjs::enable("main_variable_allsongs")
@@ -24,6 +27,8 @@ input_toggle <- function(enable_or_disable){
     shinyjs::enable("num_bars_playlist")
     shinyjs::enable("playlists_plot_go")
     shinyjs::enable("method_playlist")
-    
+    #Enable Model Tab
+    shinyjs::enable("artist_for_song_pred")
+    shinyjs::enable("artist_for_song_pred_go")
   }
 }

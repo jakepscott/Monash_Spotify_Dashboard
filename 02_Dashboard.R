@@ -16,6 +16,9 @@ library(ggtext)
 library(glue)
 library(ggiraph)
 library(patchwork)
+library(Rspotify)
+library(broom)
+library(spotifyr)
 windowsFonts(`Roboto Condensed`=windowsFont("Roboto Condensed"))
 theme_set(theme_minimal(base_family = "Roboto Condensed",
                         base_size=12))
@@ -24,6 +27,7 @@ theme_set(theme_minimal(base_family = "Roboto Condensed",
 
 #Spotify API key
 source(here("key.R"))
+load(here("data/keys"))
 
 #Load liked songs data
 liked_songs <- read_rds(here("data/full_data.rds"))
@@ -31,13 +35,21 @@ liked_songs <- read_rds(here("data/full_data.rds"))
 #Load playlist data
 playlists <- read_rds(here("data/playlist_tracks.rds"))
 
+#Load model
+model <- read_rds(here("model/logistic_model_fit_no_genres.rds"))
+
+#Load keys
+load(here("data/keys"))
+
 #Load helper functions
 source(here("helper-functions/all_songs_analysis/AllSongs_Plot_Function.R"))#Load all songs plot function
 source(here("helper-functions/playlists_analysis/Playlist_Plot.R")) #Load the playlists plot function
 source(here("helper-functions/Barplot_Function.R"))#Load barplot function
 source(here("helper-functions/Scatterplot_Function.R")) #Load scatterplot function
 source(here("helper-functions/Aggregate_Function.R")) #Load playlist aggregation function
-source(here("helper-functions/Input_Toggle.R"))
+source(here("helper-functions/Input_Toggle.R")) # Toggle inputs
+source(here("helper-functions/Get_Artist_Songs.R"))
+source(here("helper-functions/Prediction_Function.R"))
 
 #Mandatory Fields
 fieldsMandatory <- c("username", "playlists","features")
@@ -67,6 +79,9 @@ ui <- dashboardPage(skin = "green",
                     dashboardBody(
                       setSliderColor("#1DB954", 2),
                       tabsetPanel(
+                        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                        # All Songs Tab ---------------------------------------------------------
+                        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                         # Overview tab -------------------------------------------------------------
                         tabPanel(title = "Explore Liked Songs",
                                  
@@ -123,6 +138,9 @@ ui <- dashboardPage(skin = "green",
                                  ),
                         ),
                         
+                        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                        # Playlist Tab ---------------------------------------------------------
+                        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                         # Compare Playlists Tab ---------------------------------------------------
                         tabPanel(title = "Explore Playlists",
                                  # Mainbody format ---------------------------------------------------------
@@ -180,7 +198,48 @@ ui <- dashboardPage(skin = "green",
                                           box(width=12,
                                               withSpinner(girafeOutput("Playlists_Plot"),type = 6,color = "#1DB954")
                                           ))
-                                 ))
+                                 )),
+                        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                        # Model Tab ---------------------------------------------------------
+                        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                        tabPanel(title = "Recommendation Model",
+                                 infoBox("Model Accuracy", "77.1%", subtitle = "Proportion of the model's predictions that are correct",
+                                         icon = icon("search"), fill = TRUE, color = "green"),
+                                 infoBox("Model Sensitiviy",subtitle = "Proportion of liked songs the model correctly identifies", 
+                                         "68.5%", icon = icon("thumbs-up"), fill = TRUE,  color = "green"),
+                                 infoBox("Model Specificity",subtitle = "Proportion of non-liked songs the model correctly identifies", 
+                                         "77.4%", icon = icon("thumbs-down"), fill = TRUE,  color = "green"),
+                                 fluidRow(),
+                                 fluidRow(
+                                   #setSliderColor("#1DB954", sliderId = 1:10),
+                                   #Input Selection
+                                   column(width = 4, style='padding-left:0px',
+                                          box(width = 12,
+                                              textInput("artist_for_song_pred",label="Enter an artist to pick a song from",placeholder = "Artist"),
+                                              actionButton("artist_for_song_pred_go","Search for Artist Songs"),
+                                              selectizeInput(inputId = "songs_to_pred_choice", label="Select song to predict whether I'd like:",
+                                                             multiple=FALSE, choices=c("")),
+                                              actionButton("song_pred_go","Predict")
+                                              ),
+                                          ),
+                                   column(width = 8, style='padding-left:0px',
+                                          box(width=12,
+                                              withSpinner(htmlOutput("prediction"),type = 6,color = "#1DB954")#,
+                                              # tags$head(tags$style("#prediction{color: #1DB954;
+                                              #                      font-size: 30px;
+                                              #                      font-style: italic;
+                                              #                      }"
+                                              # )
+                                              # ),
+                                              )
+                                          )
+                                   ),
+                                 fluidRow(#Figure
+                                   column(width = 12, style='padding-left:0px',
+                                          box(width=12,
+                                              withSpinner(girafeOutput("Model_Plot"),type = 6,color = "#1DB954")
+                                          )))
+                                )
                       )
                     )
 )
@@ -222,8 +281,61 @@ server <- function(input, output, session) {
     }
   })
   
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # Code for Song Prediction ------------------------------------
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  shinyjs::hide("songs_to_pred_choice")
+  shinyjs::hide("song_pred_go")
   
+  prediction_inputs <- reactiveValues(artist_data=NULL,
+                                      track_name_choice=NULL,
+                                      model=model)
+  prediction_output <- reactiveValues(prediction=NULL,
+                                      song=NULL,
+                                      artist=NULL)
   
+  #Update songs select input
+  observeEvent(input$artist_for_song_pred_go, {
+    prediction_inputs$artist_data <- get_artist_songs(input$artist_for_song_pred)
+    
+    if (nrow(prediction_inputs$artist_data)==0) {
+      shinyalert("Oops!", "Artist not found, please try again.", type = "error")
+      shinyjs::hide("songs_to_pred_choice")
+      shinyjs::hide("song_pred_go")
+    } else {
+      shinyalert("Success!", "Artist found.", type = "success")
+      shinyjs::hide("songs_to_pred_choice")
+      shinyjs::hide("song_pred_go")
+      songs <- prediction_inputs$artist_data %>% arrange(track_name) %>% pull(track_name)
+      shinyjs::show("songs_to_pred_choice")
+      shinyjs::show("song_pred_go")
+      
+      
+      updateSelectizeInput(session, "songs_to_pred_choice", label = "Select song to predict whether I'd like:", choices = songs)
+    }
+  })
+  
+  #Predict song
+  observeEvent(input$song_pred_go, {
+    prediction_inputs$track_name <- input$songs_to_pred_choice
+    prediction_output$prediction <- predict_like(track_name_choice = prediction_inputs$track_name,
+                        data = prediction_inputs$artist_data,
+                        model = prediction_inputs$model)
+    prediction_output$song <- input$songs_to_pred_choice
+    prediction_output$artist <- input$artist_for_song_pred
+    })
+  
+  output$prediction <- renderText({
+    Sys.sleep(0.5)
+    result <- ifelse(prediction_output$prediction=="Liked",
+                     "like",
+                     "not like")
+    song <- prediction_output$song
+    artist <- prediction_output$artist
+    HTML(glue("<font size='5' face='arial' color='#1DB954'>The model predicts I would <b><i>{result}</i></b> {song} by {artist} </font>"))
+  }
+  )
+
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # Obtain data from username ---------------------------------------------------------
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -346,6 +458,43 @@ server <- function(input, output, session) {
                   data = playlists_plot_inputs$data)
   })
   
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # Model Plot ---------------------------------------------------------
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  output$Model_Plot <- renderGirafe({
+    data_final <- readRDS(here("model/logistic_model.rds"))
+    plot <- data_final %>% 
+        pull(.workflow) %>% 
+        pluck(1) %>% 
+        tidy() %>% 
+        filter(!str_detect(term,"genre"), 
+               term!="(Intercept)") %>% 
+        mutate(term=str_replace_all(term,"_"," "),
+               term=str_to_title(term)) %>% 
+        rowwise() %>% 
+        mutate(up_or_down = case_when(p.value>0.1 ~ "is not statistically significantly \nassociated with me liking a song",
+                                      estimate>0 & p.value<0.1 ~ "is positively associated \nwith me liking a song",
+                                      estimate<0 & p.value<0.1 ~ "is negatively associated \nwith me liking a song"),
+               label=glue("{term} {up_or_down} \n Estimate: {round(estimate,2)} \n p-Value: {round(p.value,4)}")) %>% 
+        ungroup() %>% 
+        ggplot(aes(estimate, fct_reorder(term,estimate))) +
+        geom_vline(xintercept = 0, color="grey70", linetype="dashed", size=1) +
+        geom_errorbar(aes(xmin=estimate-std.error,
+                          xmax=estimate+std.error),
+                      width=0.2, alpha=0.7) +
+        geom_point_interactive(aes(tooltip=label)) +
+        labs(y=NULL,
+             x="Coefficient",
+             title="I am more likely to like a speechy and energetic song, less likely to \nlike a long song from a popular artist",
+             subtitle = "Estimates from logistic classification model, thus one should focus on direction and \nmagnitude. Positive means more likely, negative means less likely") +
+        theme_minimal() +
+        theme(plot.title.position = "plot",
+              plot.title = element_text(size=rel(1.25)),
+              plot.subtitle = element_text(size=rel(1)),
+              axis.text.y = element_text(size=rel(1)))
+    
+    girafe(ggobj = plot)
+  })
 }
 
 shinyApp(ui, server)

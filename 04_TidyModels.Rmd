@@ -11,7 +11,7 @@ editor_options:
 library(tidyverse)
 library(tidymodels)
 library(here)
-pop_songs_data <- read_rds(here("data/Full_Popular_Songs_Missings_Fixed.rds"))
+pop_songs_data <- read_rds(here("data/Full_Popular_Songs.rds"))
 pop_songs_data <- pop_songs_data %>% 
   distinct(track_id,.keep_all = T) %>% 
   na.omit()
@@ -54,7 +54,7 @@ holdout <- pop_songs_data %>%
 full_data <- pop_songs_data %>% 
   filter(track_id %ni% holdout$track_id)
 
-#Getting rid of ID cols, making logical to char and char to factor
+#Getting rid of ID cols, make liked into a factor
 full_data <- full_data %>% 
   #Remove identified columns
   select(-contains("id"), -contains('name')) %>%
@@ -62,7 +62,10 @@ full_data <- full_data %>%
   mutate(liked=case_when(liked==T~"Liked",
                          liked==F~"Not Liked")) %>% 
   #make character columns factors
-  mutate(across(where(is.character), as.factor)) 
+  mutate(across(where(is.character), as.factor)) %>% 
+  mutate(liked=as.factor(liked)) %>% 
+  select(-type) %>% 
+  mutate(track_release_date=as.numeric(track_release_date))
 
 ```
 
@@ -87,15 +90,27 @@ data_folds <- vfold_cv(data_train) #Each of these is a cross validation fold. Wi
 
 ### Feature engineering
 ```{r Feature Engineering}
-library(textrecipes)
+library(textrecipes) #For tokenizing genres
+library(themis) # for upsampling
 #This is data preprocessing
 data_recipe <- recipe(liked ~ ., data = data_train) %>% 
   #Let's add steps. These are steps we take for feature engineering
   #These three steps takes the comma separated genre column and create a column for 
-  # 
+  # each one of the genres, with a 0-1 for whether that song is that genre
   step_tokenize(genres, token = "regex", options = list(pattern = ",")) %>% 
-  step_tokenfilter(genres, max_tokens = 2) %>% 
-  step_tf(genres)
+  step_tokenfilter(genres, max_tokens = 10) %>% 
+  step_tf(genres) %>% 
+  #Take the log to stop the skew of certain features
+  step_log(duration_ms, speechiness, acousticness, instrumentalness, 
+           liveness, artist_popularity, artist_followers, 
+           base = 10, offset = 1) %>% 
+  #This will make new examples of songs I like using nearest neighbors of the already-existing songs I do like.
+  # It will make it so we have the same number of songs for liked and not liked, adding to the liked using nearest neighbors
+  step_smote(liked)
+  
+#Set workflow
+data_wf <- workflow() %>% 
+  add_recipe(data_recipe)
 
 ```
 
@@ -106,5 +121,78 @@ data_recipe %>%
   juice() %>% 
   View()
 ```
+
+
+### Set models
+```{r}
+library(ranger)
+glm_spec <- logistic_reg() %>% 
+  set_engine("glm")
+
+rf_spec <- rand_forest(trees=1000) %>% 
+  set_engine("ranger") %>% 
+  set_mode("classification")
+```
+
+### Add model to workflow
+
+#### Logistic
+```{r}
+doParallel::registerDoParallel()
+
+glm_rs <- data_wf %>% 
+  add_model(glm_spec) %>% 
+  fit_resamples(
+    resamples = data_folds,
+    metrics = metric_set(roc_auc,accuracy, sensitivity, specificity),
+    control = control_resamples(save_pred=T)
+  )
+
+glm_rs
+
+```
+
+
+#### Random Forest
+```{r}
+
+rf_rs <- data_wf %>% 
+  add_model(rf_spec) %>% 
+  fit_resamples(
+    resamples = data_folds,
+    metrics = metric_set(roc_auc,accuracy, sensitivity, specificity),
+    control = control_resamples(save_pred=T)
+  )
+
+rf_rs
+
+```
+
+### Evaluate models
+```{r}
+collect_metrics(glm_rs)
+collect_metrics(rf_rs)
+
+glm_rs %>% 
+  conf_mat_resampled()
+
+rf_rs %>% 
+  conf_mat_resampled()
+```
+
+Logistic reg did far better, with a sensitivity (which is how well we identify songs I liked.) 
+I get around 62% of songs correctly identified as ones that I would like. (I only get 70% or so
+of songs I don't like correct though, which is bad, but not what I am looking for so idc.)
+
+
+```{r}
+glm_rs %>% 
+  collect_predictions() %>% 
+  group_by(id) %>% 
+  roc_curve(liked, .pred_Liked) %>% 
+  autoplot()
+
+```
+
 
 
