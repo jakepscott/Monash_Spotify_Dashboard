@@ -190,6 +190,9 @@ ui <- dashboardPage(skin = "green",
 
 
 server <- function(input, output, session) {
+  shinyalert(title = "Welcome!",
+             text = "Enter your Spotify Username or URI and click search to get started. For now, \"jakerocksalot\" is only the option.",
+             type = "info")
   ## initialize reactive values, which is a named list that will hold my data objects
   data <- reactiveValues()
   
@@ -238,6 +241,7 @@ server <- function(input, output, session) {
       updateSelectizeInput(session, "playlists",
                            label = "Choose which playlists to analyze",
                            choices = "")
+      input_toggle(enable_or_disable = "disable")
     } else {
       shinyalert("Success!", "Username found", type = "success")
       
