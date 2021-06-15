@@ -14,3 +14,5 @@ XX_Obtain_Artist-Info-MySongs.R
 XX_Pick-Song.R
 data_publish
 Spotify_Application/data_publish/keys
+Setting_up_key_object.R
+keys
