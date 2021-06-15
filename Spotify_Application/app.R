@@ -28,7 +28,7 @@ theme_set(theme_minimal(base_family = "Roboto Condensed",
 
 #Spotify API key
 source(here("key.R"))
-load(here("data_publish/keys"))
+load(here("keys"))
 
 #Load liked songs data
 liked_songs <- read_rds(here("data_publish/full_data.rds"))

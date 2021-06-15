@@ -1,5 +1,5 @@
 get_artist_songs <- function(artist_name){
-  load(here("data_publish/keys"))
+  load(here("keys"))
   artist_info <- searchArtist(artist_name,token=keys) %>% 
     head(1) %>% 
     as_tibble() 
