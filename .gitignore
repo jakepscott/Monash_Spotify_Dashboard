@@ -6,3 +6,9 @@
 key.R
 testing.R
 data/
+key
+XX_Add_Missing_Ids.R
+XX_Collect-Missing-Data.R
+XX_Exploring-Model-Graph.R
+XX_Obtain_Artist-Info-MySongs.R
+XX_Pick-Song.R
