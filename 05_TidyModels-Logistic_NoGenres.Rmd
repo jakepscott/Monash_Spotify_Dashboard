@@ -123,9 +123,9 @@ fit_model <- fit(data_wf,full_data)
 
 ### Save model
 ```{r}
-saveRDS(data_wf, here("model/logistic_workflow_no_genres.rds"))
-saveRDS(data_final,here("model/logistic_model_no_genres.rds"))
-saveRDS(fit_model,here("model/model_for_app_prediction.rds"))
+saveRDS(data_wf, here("Spotify_Application/model_publish/logistic_workflow_no_genres.rds"))
+saveRDS(data_final,here("Spotify_Application/model_publish/logistic_model_no_genres.rds"))
+saveRDS(fit_model,here("Spotify_Application/model_publish/model_for_app_prediction.rds"))
 ```
 
 ### Collect metrics

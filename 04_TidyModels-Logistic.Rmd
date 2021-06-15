@@ -128,16 +128,15 @@ cv %>%
 ```{r}
 data_final <- data_wf %>% 
   last_fit(data_split)
-
-collect_predictions(data_final)
-collect_predictions(data_final) %>% 
-  conf_mat(liked,.pred_class)
 ```
 
 ### Save model
+
 ```{r}
-saveRDS(data_wf, here("model/logistic_workflow.rds"))
-saveRDS(data_final,here("model/logistic_model.rds"))
+#Save workflow
+saveRDS(data_wf, here("Spotify_Application/model_publish/logistic_workflow.rds"))
+#Save logistic regression
+saveRDS(data_final, here("Spotify_Application/model_publish/logistic_model.rds"))
 ```
 
 ### View Coefficients
@@ -145,7 +144,7 @@ saveRDS(data_final,here("model/logistic_model.rds"))
 data_final %>% 
   pull(.workflow) %>% 
   pluck(1) %>% 
-  tidy(exponentiate=T) %>% #Give us odds ratio 
+  broom::tidy(exponentiate=T) %>% #Give us odds ratio 
   arrange(desc(abs(estimate))) %>% 
   filter(!str_detect(term,"genre"))
 
@@ -163,20 +162,6 @@ accuracy <- data_final %>%
 confusion_matix <- collect_predictions(data_final) %>% 
   conf_mat(liked,.pred_class) 
 
-sensitivity <- 50/73
-specificity <- 1360/(396+1360)
-
-metrics <- tibble(accuracy=accuracy, sensitivity=sensitivity, specificity=specificity)
-saveRDS(metrics,here("model/model_metrics.rds"))
-
-```
-
-
-### Plots
-
-#### Non genre terms
-```{r}
-data_final <- readRDS(here("model/logistic_model.rds"))
 data_final %>% 
   pull(.workflow) %>% 
   pluck(1) %>% 
@@ -196,7 +181,21 @@ data_final %>%
        title="I am more likely to like a speechy and energetic song, \nless likely to like a long song from a popular artist",
        subtitle = "Estimates from logistic classification model, thus one should focus \non direction and magnitude") +
   theme_minimal() +
-  theme(plot.title.position = "plot")
+  theme(plot.title.position = "plot")sensitivity <- 50/73
+specificity <- 1360/(396+1360)
+
+metrics <- tibble(accuracy=accuracy, sensitivity=sensitivity, specificity=specificity)
+saveRDS(metrics,here("model/model_metrics.rds"))
+
+```
+
+
+### Plots
+
+#### Non genre terms
+```{r}
+data_final <- readRDS(here("model/logistic_model.rds"))
+
 
 
 
