@@ -20,6 +20,7 @@ library(Rspotify)
 library(broom)
 library(spotifyr)
 library(tidymodels)
+library(janitor)
 #windowsFonts(`Roboto Condensed`=windowsFont("Roboto Condensed"))
 theme_set(theme_minimal(base_family = "Roboto Condensed",
                         base_size=12))
@@ -29,6 +30,10 @@ theme_set(theme_minimal(base_family = "Roboto Condensed",
 #Spotify API key
 source(here("key.R"))
 load(here("keys"))
+#access_token <- get_spotify_access_token()
+
+#Mandatory Fields
+fieldsMandatory <- c("username", "playlists")
 
 #Load liked songs data
 liked_songs <- read_rds(here("data_publish/full_data.rds"))
@@ -49,6 +54,8 @@ source(here("helper-functions_publish/Aggregate_Function.R")) #Load playlist agg
 source(here("helper-functions_publish/Input_Toggle.R")) # Toggle inputs
 source(here("helper-functions_publish/Get_Artist_Songs.R"))
 source(here("helper-functions_publish/Prediction_Function.R"))
+source(here("helper-functions_publish/obtain-all-playlists.r")) # Get the list of playlists
+source(here("helper-functions_publish/obtain-track-features.R")) # Get the track features
 
 
 
@@ -70,7 +77,13 @@ ui <- dashboardPage(skin = "green",
                       # Username Input ----------------------------------------------------------
                       textInput("username",label="Enter your Spotify Username or URI",placeholder = "Username or URI...",
                                 value = "jakerocksalot"),
-                      actionBttn("usernameclick","Search",style='minimal',size = "sm")
+                      actionBttn("usernameclick","Search",style='minimal',size = "sm"),
+                      selectizeInput("playlists",label="Choose which playlists to analyze",
+                                     choices = "", multiple = T),
+                      #Feature selection is the way to get the values, features is the id in the server side, relevant for disabling and enabling
+                      checkboxInput("include_radios_mixes",label = "Include artist and song radio and mix playlists?",
+                                    value = F),
+                      actionBttn("analyze","Analyze!",style = "minimal")
                     ),
                     
                     # Dashboard Body ----------------------------------------------------------
@@ -166,24 +179,10 @@ ui <- dashboardPage(skin = "green",
                                                              selected="compare_playlists"),
                                               selectizeInput(inputId = "playlist_of_interest",
                                                              label="Which playlist do you want to analyze the songs of:",
-                                                             choices=(playlists %>% 
-                                                                        group_by(playlist_name) %>% 
-                                                                        mutate(tracks=n()) %>% 
-                                                                        ungroup() %>% 
-                                                                        filter(tracks>10) %>% 
-                                                                        distinct(playlist_name) %>%
-                                                                        arrange(playlist_name) %>% 
-                                                                        pull(playlist_name)
-                                                             )),
+                                                             choices = ""),
                                               selectizeInput(inputId = "across_playlists_playlists", label= "Which playlist do you want to analyze the songs of? (Max is 5)", 
-                                                             (playlists %>% 
-                                                                group_by(playlist_name) %>% 
-                                                                mutate(tracks=n()) %>% 
-                                                                ungroup() %>% 
-                                                                filter(tracks>10) %>% 
-                                                                distinct(playlist_name) %>%
-                                                                arrange(playlist_name) %>% 
-                                                                pull(playlist_name)), options = list(maxItems = 4)),
+                                                             choices = "",
+                                                             options = list(maxItems = 4)),
                                               sliderInput(inputId = "num_bars_playlist", label = "How many bars to show in bar plot:",
                                                           max = 7, min=3, value = 5, 
                                                           step = 1, round = T),
@@ -206,13 +205,16 @@ ui <- dashboardPage(skin = "green",
 
 server <- function(input, output, session) {
   shinyalert(title = "Welcome!",
-             text = "Enter your Spotify Username or URI and click search to get started. For now, \"jakerocksalot\" is only the option.",
+             text = "Enter your Spotify Username or URI and click search to get started",
              type = "info")
   ## initialize reactive values, which is a named list that will hold my data objects
-  data <- reactiveValues()
+  data <- reactiveValues(user_playlists = NULL)
   
   #Disable exploration UI until data is collected
   input_toggle(enable_or_disable = "disable")
+  
+  #Initially disable playlist selection
+  shinyjs::disable("playlists")
   
   
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -224,8 +226,20 @@ server <- function(input, output, session) {
   observe({
     if (input$method_playlist=="songs_within_playlist") {
       shinyjs::show("playlist_of_interest")
+      #update the playlist selection in the playlist tab itself,
+      # this one for if the method is within playlist analysis of songs
+      updateSelectizeInput(session, "playlist_of_interest",
+                           label = "Choose which playlists to analyze",
+                           choices = sort(data$user_playlists %>%
+                                            filter(playlist_name %in% input$playlists) %>%
+                                            pull(playlist_name)))
     } else{
       shinyjs::hide("playlist_of_interest")
+      #Don't give any playlists in the playlist analysis tab either, for either
+      # within or across playlist comparisons
+      updateSelectizeInput(session, "playlist_of_interest",
+                           label = "Choose which playlists to analyze",
+                           choices = "")
     }
   })
   
@@ -233,68 +247,26 @@ server <- function(input, output, session) {
   observe({
     if (input$method_playlist=="songs_across_playlists") {
       shinyjs::show("across_playlists_playlists")
+      #update the playlist selection in the playlist tab itself 
+      # this one for if the method is across playist analysis of songs
+      updateSelectizeInput(session, "across_playlists_playlists",
+                           label = "Choose which playlists to analyze",
+                           choices = sort(data$user_playlists %>%
+                                            filter(playlist_name %in% input$playlists) %>%
+                                            pull(playlist_name)),
+                           options = list(maxItems = 4))
     } else{
       shinyjs::hide("across_playlists_playlists")
+      #Don't give any playlists in the playlist analysis tab either, for either
+      # within or across playlist comparisons
+      updateSelectizeInput(session, "across_playlists_playlists",
+                           label = "Choose which playlists to analyze",
+                           choices = "")
     }
   })
   
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # Code for Song Prediction ------------------------------------
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  shinyjs::hide("songs_to_pred_choice")
-  shinyjs::hide("song_pred_go")
-  
-  prediction_inputs <- reactiveValues(artist_data=NULL,
-                                      track_name_choice=NULL,
-                                      model=model_for_pred)
-  prediction_output <- reactiveValues(prediction=NULL,
-                                      song=NULL,
-                                      artist=NULL)
-  
-  #Update songs select input
-  observeEvent(input$artist_for_song_pred_go, {
-    prediction_inputs$artist_data <- get_artist_songs(input$artist_for_song_pred)
-    
-    if (nrow(prediction_inputs$artist_data)==0) {
-      shinyalert("Oops!", "Artist not found, please try again.", type = "error")
-      shinyjs::hide("songs_to_pred_choice")
-      shinyjs::hide("song_pred_go")
-    } else {
-      shinyalert("Success!", "Artist found.", type = "success")
-      shinyjs::hide("songs_to_pred_choice")
-      shinyjs::hide("song_pred_go")
-      songs <- prediction_inputs$artist_data %>% arrange(track_name) %>% pull(track_name)
-      shinyjs::show("songs_to_pred_choice")
-      shinyjs::show("song_pred_go")
-      
-      
-      updateSelectizeInput(session, "songs_to_pred_choice", label = "Select song to predict whether I'd like:", choices = songs)
-    }
-  })
-  
-  #Predict song
-  observeEvent(input$song_pred_go, {
-    prediction_inputs$track_name <- input$songs_to_pred_choice
-    prediction_output$prediction <- predict_like(track_name_choice = prediction_inputs$track_name,
-                                                 data = prediction_inputs$artist_data,
-                                                 model = prediction_inputs$model)
-    prediction_output$song <- input$songs_to_pred_choice
-    prediction_output$artist <- input$artist_for_song_pred
-  })
-  
-  output$prediction <- renderText({
-    Sys.sleep(0.5)
-    result <- ifelse(prediction_output$prediction=="Liked",
-                     "like",
-                     "not like")
-    song <- prediction_output$song
-    artist <- prediction_output$artist
-    HTML(glue("<font size='5' face='arial' color='#1DB954'>The model predicts I would <b><i>{result}</i></b> {song} by {artist} </font>"))
-  }
-  )
-  
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # Obtain data from username ---------------------------------------------------------
+  # Obtain playlists from username ---------------------------------------------
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   #Finding username, collecting data, enabling inputs  -------------------------
   observeEvent(input$usernameclick, {
@@ -304,26 +276,73 @@ server <- function(input, output, session) {
     } else {
       user <- input$username
     }
+    
+    #This gets the playlist
+    data$user_playlists <- get_playlist_data(user_id = user,
+                                        number_of_playlists = 200,
+                                        include_radios_mixes = input$include_radios_mixes)
+    
     #This tells us whether the search was a success or not
-    if(input$username!="jakerocksalot"){
+    if(nrow(data$user_playlists)==0){
       shinyalert("Oops!", "Username not found, please try again.", type = "error")
+      #If username not found, don't give any options for playlists in sidebar
       updateSelectizeInput(session, "playlists",
                            label = "Choose which playlists to analyze",
                            choices = "")
+      
+      #Disable all UI
       input_toggle(enable_or_disable = "disable")
+      #If there are no playlists, don't enable to buttons
+      shinyjs::disable("playlists")
+      
     } else {
       shinyalert("Success!", "Username found", type = "success")
       
-      #Enabling exploration UI if and only if a username is found
-      #Now that data is loaded, enable the exploration UI
-      input_toggle(enable_or_disable = "enable")
+      #Update the playlist selections in the side bar
+      updateSelectizeInput(session, "playlists",
+                           label = "Choose which playlists to analyze",
+                           choices = sort(data$user_playlists$playlist_name))
       
-      #Saving the data into a reactive object housed in obj
-      data$liked_songs <- liked_songs
-      data$playlists <- playlists 
+      #Enabling playlist selection and analyze button if and only if 
+      # a username is found
+      shinyjs::enable("playlists")
     }
   })
   
+  #Checking if mandatory fields are filled in. Got this code from Dean Attali, need to figure out how it works
+  observe({
+    # check if all mandatory fields have a value
+    mandatoryFilled <-
+      vapply(fieldsMandatory,
+             function(x) {
+               !is.null(input[[x]]) && input[[x]] != ""
+             },
+             logical(1))
+    mandatoryFilled <- all(mandatoryFilled)
+    
+    # enable/disable the submit button
+    shinyjs::toggleState(id = "analyze", condition = mandatoryFilled)
+  })
+  
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # Obtain track data from playlists -------------------------------------------
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  observeEvent(input$analyze, {
+    data$liked_songs <- obtain_track_features(playlists_of_int = input$playlists, 
+                                              data = data$user_playlists)
+    
+    data$playlists <- data$liked_songs %>% 
+      left_join(data$user_playlists, by = c("playlist_id" = "id"))
+    
+    if (nrow(data$liked_songs) >0) {
+      shinyalert("Success!", "Song data collected", type = "success")
+      #Enabling exploration UI if and only if a username is found and data is found
+      #Now that data is loaded, enable the exploration UI
+      input_toggle(enable_or_disable = "enable")
+    } else{
+      shinyalert("Failure", "Data could not be collected", type = "error")
+    }
+  })
   
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # All Songs Plot ---------------------------------------------------------
@@ -344,7 +363,7 @@ server <- function(input, output, session) {
     all_songs_plot_inputs$liked_songs <- data$liked_songs
   })
   
-  #Plug the inputs from all_songs_plot_inputs into the AllSongs_Plot function
+  #Plug the inputs from all_songs_plot_inputs into the All_Songs_Plot function
   output$All_Songs_Plot <- renderGirafe({
     req(!is.null(all_songs_plot_inputs$liked_songs))
     AllSongs_Plot(main_variable = all_songs_plot_inputs$main_variable, 
@@ -378,8 +397,6 @@ server <- function(input, output, session) {
     playlists_plot_inputs$comparison_variable <- input$comp_variable_playlist
     playlists_plot_inputs$num_bars <- input$num_bars_playlist
     playlists_plot_inputs$method <- input$method_playlist
-    playlists_plot_inputs$playlist_of_interest <- input$playlist_of_interest
-    playlists_plot_inputs$playlists_to_compare <- input$across_playlists_playlists
     playlists_plot_inputs$data <- data$playlists
     
     #These depend on what the user chooses or method
@@ -387,14 +404,19 @@ server <- function(input, output, session) {
     if (input$method_playlist=="compare_playlists") {
       playlists_plot_inputs$bar_playlist_or_track <- "playlist"
       playlists_plot_inputs$scatter_playlist_or_track <- "playlist"
+      
       #If comparing songs within playlist
     } else if (input$method_playlist=="songs_within_playlist") {
       playlists_plot_inputs$bar_playlist_or_track <- "track"
       playlists_plot_inputs$scatter_playlist_or_track <- "track"
+      playlists_plot_inputs$playlist_of_interest <- input$playlist_of_interest
+      
       #if comparing songs across playlists
     } else if (input$method_playlist=="songs_across_playlists") {
       playlists_plot_inputs$bar_playlist_or_track <- "track"
       playlists_plot_inputs$scatter_playlist_or_track <- "track"
+      playlists_plot_inputs$playlists_to_compare <- input$across_playlists_playlists
+      
     } 
   })
   

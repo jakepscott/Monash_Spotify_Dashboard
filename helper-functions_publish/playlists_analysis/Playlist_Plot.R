@@ -10,12 +10,6 @@ Playlist_Plot <- function(method,
   #Set up data
   full_data <- data %>% select(-contains("playlist"))
   
-  single_playlist <- data %>% 
-    filter(playlist_name==playlist_of_interest)
-  
-  playlists_to_compare_data <- data %>% 
-    filter(playlist_name %in% playlists_to_compare)
-  
   data_agg <- aggregate_data(main_variable = main_variable, 
                              comparison_variable = comparison_variable,
                              data=data)
@@ -42,6 +36,8 @@ Playlist_Plot <- function(method,
              opts_hover_inv(css = "opacity:0.25;")))
     
   } else if (method=="songs_within_playlist") {
+    single_playlist <- data %>% 
+      filter(playlist_name==playlist_of_interest)
     #Create the bar plot
     barplot <- barplot_function(main_variable = main_variable,
                                 how_many = how_many,
@@ -62,6 +58,8 @@ Playlist_Plot <- function(method,
              opts_hover(css = "fill:#1DB954;"),
              opts_hover_inv(css = "opacity:0.25;")))
   } else if (method=="songs_across_playlists") {
+    playlists_to_compare_data <- data %>% 
+      filter(playlist_name %in% playlists_to_compare)
     #Create the bar plot
     barplot <- barplot_function(main_variable = main_variable,
                                 how_many = how_many,
