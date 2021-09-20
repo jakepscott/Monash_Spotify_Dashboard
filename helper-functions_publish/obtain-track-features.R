@@ -49,22 +49,48 @@ obtain_track_features <- function(playlists_of_int, data){
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # Grab artist name and album image -----------------------------------------
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  #These two take about 8 seconds
   
+  ###
   #Unnest track.artists nested column
+  ### 
+  # This function says give me an object, if I unlist it and its null (for example,
+  # when a given row of images is a 0X0 dataframe) then just give me NA. Otherwise,
+  # extract the image URL. This accounts for the fact that some playlists don't have
+  # an artist listed
+  unnest_artists <- function(x){
+    if (is.null(unlist(x))) {
+      NA
+    } else{
+      x %>% head(1) %>% pull(name)
+    }
+  }
+  
   tracks <- tracks %>% 
     #This goes through each entry of track.artists and takes just the first row
     # This is selecting only the main artist of a given track, not the features
     #head() %>% 
-    mutate(artist_name=map(track_artists, function(x){x %>% head(1) %>% pull(name)})) %>% 
+    mutate(artist_name=map(track_artists, unnest_artists)) %>% 
     unnest(cols=artist_name) %>% 
     select(-track_artists)
-  
+  ###
   #Unnest track_album_images column, grabbing the 300X300 image
+  ###
+  # This function says give me an object, if I unlist it and its null (for example,
+  # when a given row of images is a 0X0 dataframe) then just give me NA. Otherwise,
+  # extract the image URL. This accounts for the fact that some tracks don't have
+  # a album cover art
+  unnest_album_covers <- function(x){
+    if (is.null(unlist(x))) {
+      NA
+    } else{
+      x %>% filter(row_number()==1) %>% pull(url)
+    }
+  }
+  
   tracks <- tracks %>% 
     #This goes through each entry of track_album_images and takes just the second row
     # This is selecting the URL to the 600 by 600 album cover url
-    mutate(album_image=map(track_album_images, function(x){x %>% filter(row_number()==1) %>% pull(url)})) %>% 
+    mutate(album_image=map(track_album_images, unnest_album_covers)) %>% 
     unnest(cols=album_image) %>% 
     select(-track_album_images)
   

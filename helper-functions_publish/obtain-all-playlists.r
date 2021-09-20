@@ -51,16 +51,35 @@ get_playlist_data <- function(user_id,
       filter(!str_detect(str_to_lower(name)," mix| radio")) 
   }
   
+  # 
+  # x <- playlists$images[1]
+  # x <- playlists$images[16]
+  # 
+  # x %>% unlist()
+  
+  # This function says give me an object, if I unlist it and its null (for example,
+  # when a given row of images is a 0X0 dataframe) then just give me NA. Otherwise,
+  # extract the image URL. This accounts for the fact that some playlists don't have
+  # an image
+  unnest_images <- function(x){
+    if (is.null(unlist(x))) {
+      NA
+    } else{
+      x %>% filter(row_number()==1) %>% pull(url)
+    }
+  }
+  
+    
   
   #Unnest the playlist images
   playlists <- playlists %>% 
     #This goes through each entry of track_album_images and takes just the second row
     # This is selecting the URL to the 300 by 300 album cover url
-    mutate(playlist_image=map(images, function(x){x %>% filter(row_number()==1) %>% pull(url)})) %>% 
+    mutate(playlist_image=map(images, unnest_images)) %>% 
     unnest(cols=playlist_image) %>% 
     select(-images) %>% 
     clean_names() %>% 
     rename("playlist_name" = name)
-    
+  
   return(playlists)
 }
