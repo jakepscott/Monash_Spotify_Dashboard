@@ -277,11 +277,15 @@ server <- function(input, output, session) {
       user <- input$username
     }
     
+    #This brings a popup telling the user we are looking for the username
+    showModal(modalDialog("Searching for username...", 
+                          footer=NULL))
     #This gets the playlist
     data$user_playlists <- get_playlist_data(user_id = user,
                                         number_of_playlists = 200,
                                         include_radios_mixes = input$include_radios_mixes)
-    
+    #This removes the loading popup
+    removeModal()
     #This tells us whether the search was a success or not
     if(nrow(data$user_playlists)==0){
       shinyalert("Oops!", "Username not found, please try again.", type = "error")
@@ -328,6 +332,9 @@ server <- function(input, output, session) {
   # Obtain track data from playlists -------------------------------------------
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   observeEvent(input$analyze, {
+    #This brings up a popup telling the user we are loading the track feature
+    showModal(modalDialog("Loading track features.... this can take a few minutes for every 100 songs", 
+                          footer=NULL))
     data$liked_songs <- obtain_track_features(playlists_of_int = input$playlists, 
                                               data = data$user_playlists)
     
@@ -342,6 +349,9 @@ server <- function(input, output, session) {
     } else{
       shinyalert("Failure", "Data could not be collected", type = "error")
     }
+    
+    #This gets rid of the loading popup
+    removeModal()
   })
   
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
