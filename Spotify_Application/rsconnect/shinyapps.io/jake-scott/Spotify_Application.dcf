@@ -5,9 +5,9 @@ account: jake-scott
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 4268412
-bundleId: 5047503
+bundleId: 5053929
 url: https://jake-scott.shinyapps.io/Spotify_Application/
-when: 1632010590.16523
-lastSyncTime: 1632010590.16523
+when: 1632182163.33979
+lastSyncTime: 1632182163.33979
 asMultiple: FALSE
 asStatic: FALSE
