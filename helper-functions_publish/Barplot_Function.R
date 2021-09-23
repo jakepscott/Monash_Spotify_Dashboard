@@ -93,5 +93,3 @@ barplot_function <- function(main_variable, how_many, playlist_or_track, data){
             axis.text.y = element_text(size=rel(1)))
   }
 }
-  
-
