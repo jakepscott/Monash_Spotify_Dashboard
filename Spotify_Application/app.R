@@ -28,9 +28,10 @@ theme_set(theme_minimal(base_family = "Roboto Condensed",
 # Loading Necessary Data and Functions ------------------------------------
 
 #Spotify API key
-source(here("key.R"))
+#source(here("key.R"))
 load(here("keys"))
 #access_token <- get_spotify_access_token()
+authorization <- keys
 
 #Mandatory Fields
 fieldsMandatory <- c("username", "playlists")
@@ -65,7 +66,9 @@ ui <- dashboardPage(skin = "green",
                       useShinyalert(),  # Set up shinyalert
                       useShinyjs(), #set up shinyjs
                       # Username Input ----------------------------------------------------------
-                      textInput("username",label="Enter your Spotify Username or URI",placeholder = "Username"),
+                      textInput("username",
+                                label="Enter your Spotify Username or URI",
+                                placeholder = "Username",value = "jakerocksalot"),
                       actionBttn("usernameclick","Search",style='minimal',size = "sm"),
                       selectizeInput("playlists",label="Choose which playlists to analyze",
                                      choices = "", multiple = T),
@@ -206,13 +209,13 @@ server <- function(input, output, session) {
   shinyjs::disable("playlists")
   
   # Create access authorization and token
-  spotify_authorization <- reactive({
-    get_spotify_authorization_code()
-  })
-  
-  spotify_token <- reactive({
-    get_spotify_access_token()
-  })
+  # spotify_authorization <- reactive({
+  #   get_spotify_authorization_code()
+  # })
+  # 
+  # spotify_token <- reactive({
+  #   get_spotify_access_token()
+  # })
   
   
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -279,7 +282,7 @@ server <- function(input, output, session) {
     showModal(modalDialog("Searching for username...", 
                           footer=NULL))
     #This gets the playlist
-    data$user_playlists <- get_playlist_data(authorization = spotify_authorization(),
+    data$user_playlists <- get_playlist_data(authorization = authorization,
                                              user_id = user,
                                              number_of_playlists = 200,
                                              include_radios_mixes = input$include_radios_mixes)
@@ -334,7 +337,7 @@ server <- function(input, output, session) {
     #This brings up a popup telling the user we are loading the track feature
     showModal(modalDialog("Loading track features.... this can take a few minutes for every 100 songs", 
                           footer=NULL))
-    data$liked_songs <- obtain_track_features(token = spotify_token,
+    data$liked_songs <- obtain_track_features(authorization = authorization,
                                               playlists_of_int = input$playlists, 
                                               data = data$user_playlists)
     
