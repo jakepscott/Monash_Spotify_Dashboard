@@ -44,7 +44,7 @@ barplot_function <- function(main_variable, how_many, playlist_or_track, data){
            title = glue("<span style = 'color: #1DB954;'>**Top**</span> versus <span style = 'color: grey;'>**bottom**</span> {how_many} playlists by median *{str_replace_all(main_variable, '_', ' ')}*")) +
       theme(plot.title.position = "plot",
             plot.title = element_markdown(size=rel(1.25)),
-            axis.text.y = element_text(size=rel(.85)))
+            axis.text.y = element_text(size=rel(1)))
   } else if (playlist_or_track=="track") {
     #Obain Top and bottom data  --------------------------------------------------------------
     if (nrow(data)/2<=how_many) {
@@ -90,8 +90,6 @@ barplot_function <- function(main_variable, how_many, playlist_or_track, data){
            title = glue("<span style = 'color: #1DB954;'>**Top**</span> versus <span style = 'color: grey;'>**bottom**</span> {how_many} songs by *{str_replace_all(main_variable, '_', ' ')}*")) +
       theme(plot.title.position = "plot",
             plot.title = element_markdown(size=rel(1.5)),
-            axis.text.y = element_text(size=rel(0.85)))
+            axis.text.y = element_text(size=rel(1)))
   }
 }
-  
-

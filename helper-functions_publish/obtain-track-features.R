@@ -1,4 +1,4 @@
-obtain_track_features <- function(token,
+obtain_track_features <- function(authorization,
                                   playlists_of_int, 
                                   data){
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -6,8 +6,10 @@ obtain_track_features <- function(token,
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   playlists <- data %>% 
     filter(playlist_name %in% playlists_of_int)
+  token <- get_spotify_access_token(client_id = authorization$app$key,
+                                    client_secret = authorization$app$secret)
   
-  token = get_spotify_access_token()
+  #token = keys$credentials$access_token
   
   #This function takes a given playlist id, grabs the tracks, 
   # and attaches the playlist name.
@@ -107,7 +109,8 @@ obtain_track_features <- function(token,
     distinct(track_id)
   
   
-  full_features <- get_track_audio_features(ids_of_interest$track_id[1]) %>% 
+  full_features <- get_track_audio_features(ids_of_interest$track_id[1],
+                                            authorization = token) %>% 
     head(0)
   
   for(i in ids_of_interest$track_id){

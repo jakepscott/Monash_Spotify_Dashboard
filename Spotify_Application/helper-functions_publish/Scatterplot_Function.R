@@ -35,9 +35,9 @@ scatterplot_function <- function(main_variable, comparison_variable, playlist_or
       theme(plot.title.position = "plot",
             plot.title = element_markdown(size=rel(1.25)),
             plot.subtitle = element_text(color = "grey30"))
-
-
-# If the data is all the tracks: ------------------------------------------
+    
+    
+    # If the data is all the tracks: ------------------------------------------
   } else if (playlist_or_track=="track") {
     if (!is.null(data$playlist_name)) {
       #If it is more than one playlist and each track within those playlists plotted as color coded points
